@@ -1,0 +1,3 @@
+The multilinear reference tissue model (MRTM) and MRTM2 are described in Ichise M et al., "Linearized reference tissue parametric imaging methods: application to [11C]DASB positron emission tomography stuies of the serotonin transporter in human brain", Journal of Cerebral Blood Flow and Metabolism 23(9):1096-1112, 2003.
+
+Logan graphical analysis (LGA) without a reference region input in described in Logan J et al., "Distribution volume ratios without blood sampling from graphical analysis of PET data", Journal of Cerebral Blood Flow and Metabolism 16(5):834-840, 1996.
