@@ -19,32 +19,39 @@
 
 %-------------------------------------------------------------------------%
     % set system specific paths
-addpath(genpath('/datay2/chumin-F31/matlabscripts/toolbox_matlab_nifti'))
-addpath(genpath('/datay2/chumin-F31/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
+addpath(genpath('/datay2/PET_processing_Code/matlabscripts/toolbox_matlab_nifti'))
+addpath(genpath('/datay2/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
 addpath(genpath('/usr/local/spm12'))
 %-------------------------------------------------------------------------%
     % set data directory paths
 dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
-outDIR='/datay2/chumin-F31/mrtm2_images';
-scan='PET';
+outDIR='/datay2/chumin-F31/mrtm2_MNI_images';
 %-------------------------------------------------------------------------%
 % Raclopride half-life
 thalf=20.4;
 
-% Loop accross subjects   
+%% Loop accross subjects   
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 for i=1:length(subjDIRS)
+    % set PET subdirectory names
+    dircont=dir(fullfile(subjDIRS(i).folder,subjDIRS(i).name)); dircont(1:2)=[];
+    petList=struct.empty;
+    for p=1:length(dircont)
+        if dircont(p).isdir==1 && ~isempty(strfind(dircont(p).name,'PET'))
+            petList(end+1).name=dircont(p).name;
+        end
+    end
+ 
     %set hardcoded paths
     disp('%---------------------------------%')
     fprintf('Setting paths to %s data .....\n',subjDIRS(i).name)
-    petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'PET');
+    pet1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name);
     t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
-    regDIR=fullfile(t1DIR,'registration');
-    niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
-    cd(petDIR)
+    nii1DIR=fullfile(pet1DIR,'nii_dynamic_preproc');
+    cd(pet1DIR)
     % normalize T1 to MNI
         % SPM12
-        matlabbatch{1}.spm.tools.oldseg.data{1} = sprintf('%s/T1_fov_denoised.nii,1',t1DIR);
+        matlabbatch{1}.spm.tools.oldseg.data{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',t1DIR);
         matlabbatch{1}.spm.tools.oldseg.output.GM = [0 0 0];
         matlabbatch{1}.spm.tools.oldseg.output.WM = [0 0 0];
         matlabbatch{1}.spm.tools.oldseg.output.CSF = [0 0 0];
@@ -66,8 +73,8 @@ for i=1:length(subjDIRS)
         matlabbatch{1}.spm.tools.oldseg.opts.biasfwhm = 60;
         matlabbatch{1}.spm.tools.oldseg.opts.samp = 3;
         matlabbatch{1}.spm.tools.oldseg.opts.msk = {''};
-        matlabbatch{2}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_fov_denoised_seg_sn.mat',t1DIR);
-        matlabbatch{2}.spm.tools.oldnorm.write.subj.resample{1} = sprintf('%s/T1_fov_denoised.nii,1',t1DIR);
+        matlabbatch{2}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_2mm_fov_denoised_seg_sn.mat',t1DIR);
+        matlabbatch{2}.spm.tools.oldnorm.write.subj.resample{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',t1DIR);
         matlabbatch{2}.spm.tools.oldnorm.write.roptions.preserve = 0;
         matlabbatch{2}.spm.tools.oldnorm.write.roptions.bb = [-90 -126 -72
                                                               91 91 109];
@@ -78,14 +85,30 @@ for i=1:length(subjDIRS)
 
          spm_jobman('run',matlabbatch);
             clear matlabbatch
-    
+     
     %write out normalized PET frames (MNI)
-        matlabbatch{1}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_fov_denoised_seg_sn.mat',t1DIR);
-        niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
-        if ~isempty(dir(fullfile(niiDIR,'rFBP_RACd*.nii')))
-            frames=dir(fullfile(niiDIR,'rFBP_RACd*.nii'));
+        matlabbatch{1}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_2mm_fov_denoised_seg_sn.mat',t1DIR);
+        if length(petList) > 1
+                pet2DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(2).name);
+                nii2DIR=fullfile(pet2DIR,'nii_dynamic_preproc');
+                if ~isempty(dir(fullfile(nii2DIR,'r2mm_FBP_RACd*.nii')))
+                    frames=dir(fullfile(nii2DIR,'r2mm_FBP_RACd*.nii'));
+                    for j=1:length(frames)
+                        pet2frames{j,1} = sprintf('%s/%s,1',nii2DIR,frames(j).name);
+                    end
+                    clear frames
+                end
+        end
+        if ~isempty(dir(fullfile(nii1DIR,'r2mm_FBP_RACd*.nii')))
+            frames=dir(fullfile(nii1DIR,'r2mm_FBP_RACd*.nii'));
             for j=1:length(frames)
-                matlabbatch{1}.spm.tools.oldnorm.write.subj.resample{j,1} = sprintf('%s/%s,1',niiDIR,frames(j).name);
+                pet1frames{j,1} = sprintf('%s/%s,1',nii1DIR,frames(j).name);
+            end
+            clear frames
+            if length(petList) > 1
+                matlabbatch{1}.spm.tools.oldnorm.write.subj.resample=vertcat(pet1frames,pet2frames);
+            else
+                matlabbatch{1}.spm.tools.oldnorm.write.subj.resample=pet1frames; 
             end
             matlabbatch{1}.spm.tools.oldnorm.write.roptions.preserve = 0;
             matlabbatch{1}.spm.tools.oldnorm.write.roptions.bb = [-90 -126 -72
@@ -103,7 +126,11 @@ for i=1:length(subjDIRS)
         end
     
     % Run MRTM2
-    normDynamicIN=fullfile(niiDIR,['w' frames(1).name]);
+    for p=1:length(petList)
+        petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(p).name);
+        niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
+        frames=dir(fullfile(niiDIR,'r2mm_FBP_RACd*.nii'));
+        normDynamicIN=fullfile(niiDIR,['w' frames(1).name]);
     cerebellum_tac=fullfile(petDIR,'roi_TAC_mrtm/cerebellum_tac.txt');
     outSubject=fullfile(petDIR,'mrtm2_mni_images');
     if ~exist(outSubject,'dir')
@@ -117,12 +144,7 @@ for i=1:length(subjDIRS)
         mkdir(outDIR)
     end
     % COPY THE BP IMAME TO GROUP DIRECTORY
-    
-
+    subjBP=dir(fullfile(outSubject,'wr2mm_*MRTM2*BP.nii'));
+    copyfile([subjBP(1).folder '/' subjBP(1).name], [outDIR '/' petList(p).name '_BP_' subjDIRS(i).name '_MNI_MRTM2.nii'])
+    end
 end
-    
-    
-    
-    
-    
-    

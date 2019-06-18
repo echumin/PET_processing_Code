@@ -1,17 +1,35 @@
- % set data directory paths
+% racPET_spm12_3_mrtmFIT_QCsheets.m
+%
+% This script follows the 2_TACand MRTM, consolidating all figures into pdf
+% file summary sheets of MRTM fits for all striatal regions.
+%
+% Contributors:
+% Evgeny Chumin, Indiana University School of Medicine, 2019
+% Mario Dzemidzic, Indiana University School of Medicine, 2019
+%-------------------------------------------------------------------------%
+% set data directory paths
 dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
-outDIR='/datay2/chumin-F31/results/mrtm_qc_sheets/CNT-SKYRA';
-scan='PET';
+outDIR='/datay2/chumin-F31/results/mrtm_qc_sheets/test';
 
 if ~exist(outDIR,'dir')
     mkdir(outDIR)
 end
 
-% Loop accross subjects        
+%% Loop accross subjects        
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
-
 for s=1:length(subjDIRS)
-    datadir=fullfile(subjDIRS(s).folder,subjDIRS(s).name,scan,'roi_TAC_mrtm');
+    disp(subjDIRS(s).name)
+    dircont=dir(fullfile(subjDIRS(s).folder,subjDIRS(s).name)); dircont(1:2)=[];
+    petList=struct.empty;
+    for p=1:length(dircont)
+        if dircont(p).isdir==1 && ~isempty(strfind(dircont(p).name,'PET'))
+            petList(end+1).name=dircont(p).name;
+        end
+    end
+%% Loop across PET sessions
+for p=1:length(petList) % loop over PET scans
+    disp(petList(p).name)
+    datadir=fullfile(subjDIRS(s).folder,subjDIRS(s).name,petList(p).name,'roi_TAC_mrtm');
 % get figure names
 modelfit=dir(fullfile(datadir,'*modelfit.fig'));
 wresid=dir(fullfile(datadir,'*wresid.fig'));
@@ -42,7 +60,7 @@ for i=1:length(h)
     end
 end
 clear m r
-p1=mtit(o1,strcat(subjDIRS(s).name,' 1/2'));
+p1=mtit(o1,strcat(subjDIRS(s).name,' ',petList(p).name,' Page 1/2'));
 
 for i=1:length(h)/2
     copyobj(fig{i,1},s1{i,1})
@@ -61,8 +79,8 @@ for i=1:length(h)/2
     end
 end
     
-print(fullfile(datadir,sprintf('%s-MRTMfitsV2_1of2.pdf',subjDIRS(s).name)),'-dpdf','-fillpage')
-copyfile(fullfile(datadir,sprintf('%s-MRTMfitsV2_1of2.pdf',subjDIRS(s).name)),outDIR)
+print(fullfile(datadir,sprintf('%s-MRTMfits_%s_p1of2.pdf',subjDIRS(s).name,petList(p).name)),'-dpdf','-fillpage')
+copyfile(fullfile(datadir,sprintf('%s-MRTMfits_%s_p1of2.pdf',subjDIRS(s).name,petList(p).name)),outDIR)
 
 o2=figure('Position',[1 1 675 900]);
 
@@ -79,7 +97,7 @@ for i=1:length(h)
     end
 end
 clear m r
-p2=mtit(o2,strcat(subjDIRS(s).name,' 2/2'));
+p2=mtit(o2,strcat(subjDIRS(s).name,' ',petList(p).name,' Page 2/2'));
 
 for i=1:length(h)/2
     k=i+length(h)/2;
@@ -99,8 +117,9 @@ for i=1:length(h)/2
     end
 end
 
-print(fullfile(datadir,sprintf('%s-MRTMfitsV2_2of2.pdf',subjDIRS(s).name)),'-dpdf','-fillpage')
-copyfile(fullfile(datadir,sprintf('%s-MRTMfitsV2_2of2.pdf',subjDIRS(s).name)),outDIR)
+print(fullfile(datadir,sprintf('%s-MRTMfits_%s_p2of2.pdf',subjDIRS(s).name,petList(p).name)),'-dpdf','-fillpage')
+copyfile(fullfile(datadir,sprintf('%s-MRTMfits_%s_p2of2.pdf',subjDIRS(s).name,petList(p).name)),outDIR)
 
 close all
+end
 end

@@ -8,6 +8,9 @@
 %   This code expects that mCT2nii has been ran on the data, which means
 %   Nii-FBP_RACd (dynamic data scans) exists and contains nifti PET frames.
 %
+% T1 A and B preprocessing through the IUSM-connectivity-pipeline should be
+% completed prior to starting these scripts.
+%
 % For single scan design there should only be a single 'PET' directory.
 % For 2 scan designs, where scan2 needs to be aligned to scan1, there
 % should be a 'PET1' and 'PET2' directories where:
@@ -18,6 +21,7 @@
 %
 %Contributons:
 %  Evgeny Chumin, Indiana University School of Medicine, 2019
+%  Mario Dzemidzic, Indiana University School of Medicine, 2019
 %
 % Additional Notes:
 %   This code was written with spm12 and fsl5.0.10 (eddy patched)
@@ -46,6 +50,7 @@ for i=1:length(subjDIRS)
 %% Create an early mean PET image
 if ~isempty(petList)
     t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
+if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
     for p=1:length(petList) % loop over PET scans
         petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(p).name);
         % if dynamic data exists
@@ -112,6 +117,10 @@ if ~isempty(petList)
         clear frames
     end
 else
+    warning('No T1_fov_denoised found. Run IUSM-connectivity-pipeline T1_A and B.')
+    return
+end
+else
     warning('No PET directories found in %s directory. Exiting...',subjDIRS(i).name)
     return
 end   
@@ -140,12 +149,12 @@ end
     T1out=fullfile(t1DIR,'T1_2mm_fov_denoised');
     sentence=sprintf('flirt -in %s -out %s -interp spline -applyisoxfm 2 -ref %s',T1in,T1out,T1in);
     [~,result]=system(sentence);
-    if ~empty(result,'var')
+    if ~isempty(result)
         disp(result)
     end
     sentence=sprintf('gunzip %s.nii.gz',T1out);
     [~,result]=system(sentence);
-    if ~empty(result,'var')
+    if ~isempty(result)
         disp(result)
     end
 

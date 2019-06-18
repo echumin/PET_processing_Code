@@ -1,4 +1,4 @@
-% racPET_TACandMRTM.m
+% racPET_spm12_2_TACandMRTM.m
 %
 % This code follows the racPET_spm12_1_preproc code.
 %
@@ -18,20 +18,22 @@
 % for accurate BP extimation. 
 %
 % Contributors:
-% Evgeny Chumin, Indiana School of Medicine, 2019
+% Evgeny Chumin, Indiana University School of Medicine, 2019
+% Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
     % set system specific paths
-addpath(genpath('/usr/local/matlabscripts/toolbox_matlab_nifti'))
-addpath(genpath('/datay2/chumin-F31/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
+addpath(genpath('/datay2/PET_processing_Code/toolbox_matlab_nifti'))
+addpath(genpath('/datay2/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
 %-------------------------------------------------------------------------%
+    % set path to fsl for shape models
+fslpath='/usr/local/fsl5.0.11'; %DO NOT PUT A SLASH ON THE END
     % set path to MNI cerebellar vermis template
-vermisMNI='/datay2/chumin-F31/PET_processing_Code/mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz';
+vermisMNI='/datay2/PET_processing_Code/mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz';
 %-------------------------------------------------------------------------%
     % set data directory paths
 dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
-scan='PET';
 outDIR='/datay2/chumin-F31/results';
-outFILE='CNT_SKYRA_mrtm_20190516_test';
+outFILE='mrtm_20190523_test';
 %-------------------------------------------------------------------------%
 roiDATA= {'L_', 'R_', 'label';
           267,   25, 'pre_dca'
@@ -43,7 +45,7 @@ roiDATA= {'L_', 'R_', 'label';
 % Raclopride half-life
 thalf=20.4;
 
-% Preallocate output data structures
+%% Preallocate output data structures
 mrtmOUTbp={'BP'}; mrtmOUTr1={'R1'}; mrtmOUTk2={'k2'}; mrtmOUTk2a={'k2a'}; mrtmOUTk2r={'k2r'};
 for j=1:2
     for k=2:6
@@ -54,22 +56,60 @@ for j=1:2
         mrtmOUTk2r{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,3});
     end
 end
-% Loop accross subjects        
+%% Loop accross subjects        
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 for i=1:length(subjDIRS)
-    %set hardcoded paths
     disp('%---------------------------------%')
     fprintf('Setting paths to %s data .....\n',subjDIRS(i).name)
-    petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,scan);
-    t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
-    parcFile=fullfile(t1DIR,'T1_GM_parc_shen_286.nii.gz');
-    niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
+    % set PET subdirectory names
+    dircont=dir(fullfile(subjDIRS(i).folder,subjDIRS(i).name)); dircont(1:2)=[];
+    petList=struct.empty;
+    for p=1:length(dircont)
+        if dircont(p).isdir==1 && ~isempty(strfind(dircont(p).name,'PET'))
+            petList(end+1).name=dircont(p).name;
+        end
+    end
+    % Perform file checks
+    if ~isempty(petList)
+        t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
+    else
+        warning('No PET directories found. Exiting...')
+        return
+    end
+    if ~exist(fullfile(t1DIR,'T1_2mm_fov_denoised.nii'),'file')
+        warning('T1_2mm_fov_denoised.nii not found. Make sure preproc was ran. Exiting...')
+        return
+    end
+    if ~exist(fullfile(t1DIR,'T1_2mm_GM_parc_shen_286.nii.gz'),'file')
+        if exist(fullfile(t1DIR,'T1_GM_parc_shen_286.nii.gz'),'file')
+            parc1mm=fullfile(t1DIR,'T1_GM_parc_shen_286.nii.gz');
+            parcFile=fullfile(t1DIR,'T1_2mm_GM_parc_shen_286.nii.gz');
+            sentence=sprintf('flirt -in %s -out %s -interp nearestneighbour -applyisoxfm 2 -ref %s',parc1mm,parcFile,parc1mm);
+            [~,result]=system(sentence);disp(result)
+        else
+            warning('T1_GM_parc_shen_286.nii.gz not found. Make sure T1_B was ran. Exiting...')
+            return
+        end
+    else
+        parcFile=fullfile(t1DIR,'T1_2mm_GM_parc_shen_286.nii.gz');
+    end
+%% Loop across PET sessions
+for p=1:length(petList) % loop over PET scans
+    petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(p).name);
+    disp(petList(p).name)
+    % if dynamic data exists
+    if ~isempty(dir(fullfile(petDIR,'Nii-*FBP_RACd*')))
+        niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
+    else
+        warning('nii_dymanic_preproc not found. Make sure preproc was ran. Exiting...')
+        return
+    end
     %create a 4D pet dataset
     disp('%---------------------------------%')
-    fprintf('Mergning %s data into a 4D volume ....\n',subjDIRS(i).name)
+    fprintf('Merging %s data into a 4D volume ....\n',subjDIRS(i).name)
     disp('%---------------------------------%')
-    pet4D=fullfile(petDIR,'rT1_FBP_RACd.nii.gz');
-    sentence=sprintf('fslmerge -t %s %s',pet4D,fullfile(niiDIR,'rFBP_RACd*.nii'));
+    pet4D=fullfile(petDIR,'r2mm_T1_FBP_RACd.nii.gz');
+    sentence=sprintf('fslmerge -t %s %s',pet4D,fullfile(niiDIR,'r2mm_FBP_RACd*.nii'));
     [~,result]=system(sentence); disp(result)
     frames=dir(fullfile(niiDIR,'FBP_RACd*.nii'));
     numTimePoints=length(frames);
@@ -79,7 +119,7 @@ for i=1:length(subjDIRS)
     % initialize time-frame data
     TimeFrames(1,1)=0;
     %referring to dicom data, generate time-frames
-    dcmString=dir(fullfile(petDIR,'Nii-*FBP_RACd*/*000001*.dcm'));
+    dcmString=dir(fullfile(petDIR,'Nii-*FBP_RACd*/*.dcm'));
     dcmPath=dcmString(1).folder;
     dcmString=strsplit(dcmString(1).name,'-');
     dcmString=strcat(dcmString{1},'-',dcmString{2},'-');
@@ -143,7 +183,7 @@ for i=1:length(subjDIRS)
         if ~exist(crblmDIR,'dir')
             mkdir(crblmDIR)
         end
-        T1=fullfile(t1DIR,'T1_fov_denoised.nii');
+        T1=fullfile(t1DIR,'T1_2mm_fov_denoised.nii');
         outBasename=fullfile(crblmDIR,'subj_2_std_subc');
         [~,result]=system(sprintf('first_flirt %s %s -cort',T1,outBasename));disp(result)
         [~,~]=system(sprintf('rm %s/*subc.mat* %s/*subc.nii* %s/*cort.nii*',crblmDIR,crblmDIR,crblmDIR));
@@ -154,8 +194,8 @@ for i=1:length(subjDIRS)
             elseif c==2
                 cereb=fullfile(crblmDIR,'L_cerebellum'); side='L';
             end
-            [~,result]=system(sprintf('run_first -i %s -t %s -o %s -n 40 -m /usr/local/fsl/data/first/models_336_bin/intref_puta/%s_Cereb.bmv -intref /usr/local/fsl/data/first/models_336_bin/05mm/%s_Puta_05mm.bmv',...
-                T1,mat,cereb,side,side));disp(result)
+            [~,result]=system(sprintf('run_first -i %s -t %s -o %s -n 40 -m %s/data/first/models_336_bin/intref_puta/%s_Cereb.bmv -intref %s/data/first/models_336_bin/05mm/%s_Puta_05mm.bmv',...
+                T1,mat,cereb,fslpath,side,fslpath,side));disp(result)
             [~,result]=system(sprintf('first_boundary_corr -s %s.nii.gz -i %s -b fast -o %s_corr',cereb,T1,cereb));disp(result)
             [~,result]=system(sprintf('fslmaths %s_corr.nii.gz -bin %s_corr_bin',cereb,cereb));disp(result)
         end
@@ -180,7 +220,13 @@ for i=1:length(subjDIRS)
         crblmFINAL=fullfile(crblmDIR,'cerebellum_noVermis.nii.gz');
         [~,result]=system(sprintf('fslmaths %s/cerebellum_bin_filled.nii.gz -mas %s_binv.nii.gz %s',crblmDIR,vermisNATIVE,crblmFINAL));disp(result)
         % Isolate cerebellar Gray Matter
-        [~,result]=system(sprintf('fslmaths %s -mas %s/T1_GM_mask.nii.gz %s',crblmFINAL,t1DIR,crblmFINAL));disp(result)
+        GM2mm=fullfile(t1DIR,'T1_2mm_GM_mask.nii.gz');
+        if ~exist(GM2mm,'file')
+            GM1mm=fullfile(t1DIR,'T1_GM_mask.nii.gz');
+            sentence=sprintf('flirt -in %s -out %s -interp nearestneighbour -applyisoxfm 2 -ref %s',GM1mm,GM2mm,GM1mm);
+            [~,result]=system(sentence);disp(result)
+        end 
+        [~,result]=system(sprintf('fslmaths %s -mas %s %s',crblmFINAL,GM2mm,crblmFINAL));disp(result)
         
         fprintf('Extracting TAC for cerebellar reference.\n')
         volROI = MRIread(crblmFINAL); volROI=volROI.vol;
@@ -228,7 +274,9 @@ for i=1:length(subjDIRS)
         disp(parcFile)
         disp(niiDIR)
         warning('GM parcellation image above not found or/n PET nii dir not found.')
+
     end
+end
 end
 % save results from the whole subjectlist
 fileOUTall=fullfile(outDIR,sprintf('%s.mat',outFILE));

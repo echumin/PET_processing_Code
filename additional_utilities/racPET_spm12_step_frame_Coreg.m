@@ -8,14 +8,21 @@
 %   contains a link (e.g. datadir) to the dicom PET data
 %   This code expects that mCT2nii has been ran on the data, which means
 %   Nii-FBP_RACd (dynamic data scans) exists and contains nifti PET frames.
+% IDEAL USE CASE:
+%  -You have steps 1, 2, and 3 of processing and discovered that there are
+%   frames that poorly align with the MRTM fit.
+%  -If this apears only in one or some of the frames of the scans, this is likely an
+%   issue of poor frame coregistration to the mean PET. To fix it, one
+%   needs to coregister the 'bad' frame to an adjacent 'good' frame.
+%  -Unfortunately, this mean you must start processing from the beginning.
+%   Run 1_preproc again and check the registration of all frames to the mean.
+%   If poor realignment is the culprit, input them to this script,
+%   coregister bad frames to preceeding good frames (this will update the
+%   header transformation matrix), then proceed to step 2 and beyond.
 %
 %Contributons:
 %  Evgeny Chumin, Indiana University School of Medicine, 2019
 %
-% Additional Notes:
-%   This code was written with spm12 and fsl5.0.10 (eddy patched)
-%   Required MRIread and MRIwrite functions available from the 
-%   toolbox_matlab_nifti.
 %-------------------------------------------------------------------------%
 addpath(genpath('/usr/local/spm12')) % set path to spm12
 %-------------------------------------------------------------------------%
@@ -24,10 +31,11 @@ dataDIR='/datay2/chumin-F31/data/CNT/PRISMA';
 %-------------------------------------------------------------------------%
 % subject ID to be ran (one at a time)
 subj='PPE20125';
-scan='PET1'; 
+scan='PET2'; 
 %-------------------------------------------------------------------------%
 % frames to step coregister
-fstart=52; fstop=55;
+%   must be a vector of integers; must list in order smallest to largest
+frames2reg = [42 46 50];
 %-------------------------------------------------------------------------%
 
 % Finding the subject
@@ -42,25 +50,23 @@ for i=1:length(subjDIRS)
     % if dynamic data exists
     if ~isempty(dir(fullfile(petDIR,'Nii-*FBP_RACd*')))
        niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
-       frames=dir(fullfile(niiDIR,'FBP*.nii'));
-       if exist(niiDIR,'dir') 
-        matlabbatch{1}.spm.spatial.coreg.estwrite.other = {''};
-        matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.cost_fun = 'nmi';
-        matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.sep = [4 2];
-        matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
-        matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.fwhm = [7 7];
-        matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.interp = 4;
-        matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.wrap = [0 0 0];
-        matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.mask = 0;
-        matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.prefix = 'r';
-        for k=fstart:fstop
-            matlabbatch{1}.spm.spatial.coreg.estwrite.ref = {sprintf('%s/r%s,1',niiDIR,frames(k-1).name)};
-            matlabbatch{1}.spm.spatial.coreg.estwrite.source = {sprintf('%s/%s,1',niiDIR,frames(k).name)};
+       if exist(niiDIR,'dir')
+        frames=dir(fullfile(niiDIR,'FBP*.nii'));
+        matlabbatch{1}.spm.spatial.coreg.estimate.other = {''};
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
+        for k=1:length(frames2reg)
+            Bframe=frames2reg(k);
+            Gframe=frames2reg(k-1);
+            matlabbatch{1}.spm.spatial.coreg.estimate.ref = {sprintf('%s/r%s,1',niiDIR,frames(Gframe).name)};
+            matlabbatch{1}.spm.spatial.coreg.estimate.source = {sprintf('%s/%s,1',niiDIR,frames(Bframe).name)};
             spm_jobman('run',matlabbatch);
-            spm_print(fullfile(niiDIR,'reg2mean_qc.ps'));
-            fprintf('%d/%d - %s completed!\n',k,length(frames),frames(k).name)
+            fprintf('%d/%d - %s completed!\n',Bframe,length(frames),frames(Bframe).name)
             clear matlabbatch{1}.spm.spatial.coreg.estwrite.source
             clear matlabbatch{1}.spm.spatial.coreg.estwrite.ref
+            clear Bframe Gframe
         end 
         clear matlabbatch
        else

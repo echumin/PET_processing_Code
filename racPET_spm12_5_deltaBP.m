@@ -1,4 +1,4 @@
-% racPET_spm12_5_deltaBP_untested.m
+% racPET_spm12_5_deltaBP.m
 %
 %Contributons:
 %  Evgeny Chumin, Indiana University School of Medicine, 2019
@@ -14,13 +14,15 @@ addpath(genpath('/usr/local/spm12')) % set path to spm12
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
 dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
-outDIR='/datay2/chumin-F31/mrtm2_images';
+outDIR='/datay2/chumin-F31/mrtm2_dBP_images';
+if ~exist(outDIR,'dir')
+    mkdir(outDIR)
+end
 %-------------------------------------------------------------------------%
 %%
 % Looping across subjects
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
-for i=1:length(subjDIRS)
-    
+for i=1:length(subjDIRS)  
      % set PET subdirectory names
     dircont=dir(fullfile(subjDIRS(i).folder,subjDIRS(i).name)); dircont(1:2)=[];
     petList=struct.empty;
@@ -39,24 +41,20 @@ if length(petList) > 1
     blPET=dir(fullfile(pet1DIR,'mrtm2_images/*_MRTM2_BP.nii'));
     chPET=dir(fullfile(pet2DIR,'mrtm2_images/*_MRTM2_BP.nii'));
     
-    matlabbatch{1}.spm.util.imcalc.input{1,1} = blPET;
-    matlabbatch{1}.spm.util.imcalc.input{2,1} = blPET;                            
+    matlabbatch{1}.spm.util.imcalc.input{1,1} = fullfile(blPET.folder,blPET.name);
+    matlabbatch{1}.spm.util.imcalc.input{2,1} = fullfile(chPET.folder,chPET.name);                            
     matlabbatch{1}.spm.util.imcalc.output = ['dBP_' subjDIRS(i).name '_MRTM2.nii'];
     matlabbatch{1}.spm.util.imcalc.outdir{1,1} = outDIR;
-    matlabbatch{1}.spm.util.imcalc.expression = '(i1-i2)/i1';
+    matlabbatch{1}.spm.util.imcalc.expression = '(i1-i2)./i1';
     matlabbatch{1}.spm.util.imcalc.var = struct('name', {}, 'value', {});
     matlabbatch{1}.spm.util.imcalc.options.dmtx = 0;
     matlabbatch{1}.spm.util.imcalc.options.mask = 0;
     matlabbatch{1}.spm.util.imcalc.options.interp = 1;
-    matlabbatch{1}.spm.util.imcalc.options.dtype = 4;
+    matlabbatch{1}.spm.util.imcalc.options.dtype = 16;
     spm_jobman('run',matlabbatch);
-    clear matlabbatch
-    
+    clear matlabbatch   
 else
     warning('One or less PET directories found. Cannot calculate deltaBP. Exiting...')
     return
 end
 end
-
-
-

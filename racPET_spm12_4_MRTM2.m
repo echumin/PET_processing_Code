@@ -1,5 +1,5 @@
-%racPET_spm12_4a_MRTM2_MNI.m
-
+%racPET_spm12_4_MRTM2.m
+%
 % Creates parametric BPnd images for Raclopride PET data.
 %
 % This code follows racPET_TACandMRTM code and assumes you have done the
@@ -14,32 +14,37 @@
 % for accurate BP extimation. 
 %
 % Contributors:
-% Evgeny Chumin, Indiana School of Medicine, 2019
-%-------------------------------------------------------------------------%
-
+% Evgeny Chumin, Indiana University School of Medicine, 2019
+% Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
     % set system specific paths
-addpath(genpath('/datay2/chumin-F31/matlabscripts/toolbox_matlab_nifti'))
-addpath(genpath('/datay2/chumin-F31/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
+addpath(genpath('/datay2/matlabscripts/toolbox_matlab_nifti'))
+addpath(genpath('/datay2/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
 addpath(genpath('/usr/local/spm12'))
 %-------------------------------------------------------------------------%
     % set data directory paths
 dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
-outDIR='/datay2/chumin-F31/mrtm2_images';
-scan='PET';
 %-------------------------------------------------------------------------%
 % Raclopride half-life
 thalf=20.4;
 
-% Loop accross subjects   
+%% Loop accross subjects   
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 for i=1:length(subjDIRS)
+    % set PET subdirectory names
+    dircont=dir(fullfile(subjDIRS(i).folder,subjDIRS(i).name)); dircont(1:2)=[];
+    petList=struct.empty;
+    for p=1:length(dircont)
+        if dircont(p).isdir==1 && ~isempty(strfind(dircont(p).name,'PET'))
+            petList(end+1).name=dircont(p).name;
+        end
+    end
+for p=1:length(petList) % loop over PET scans
     %set hardcoded paths
     disp('%---------------------------------%')
-    fprintf('Setting paths to %s data .....\n',subjDIRS(i).name)
-    petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,scan);
+    fprintf('Setting paths to %s %s data .....\n',subjDIRS(i).name,petList(p).name)
+    petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(p).name);
     t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
-    regDIR=fullfile(t1DIR,'registration');
     niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
     cd(petDIR)
     if ~isempty(dir(fullfile(niiDIR,'r2mm_FBP_RACd*.nii')))
@@ -58,11 +63,5 @@ for i=1:length(subjDIRS)
     end
     %usage
     [BP, k2r, R1, k2, k2a] = mrtm2 (first_frameIN, 'dec', cerebellum_tac, outSubject, thalf, 'unweighted');
-    
-    if ~exist(outDIR,'dir')
-        mkdir(outDIR)
-    end
-    % Copy the BP iamge to the group directory
-    subjBP=dir(fullfile(outSubject,'r2mm_*MRTM2*BP.nii'));
-    copyfile([subjBP(1).folder '/' subjBP(1).name], [outDIR '/' scan '_BP_' subjDIRS(i).name '_MRTM2.nii'])
+end
 end    
