@@ -181,4 +181,6 @@ end
     matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.prefix = 'r2mm_';
     spm_jobman('run',matlabbatch);
     clear matlabbatch
+%% Perforn a final realignment for residual motion assessment and finetunning of coregistration to T1
+    % UNDER CONSTRUCTION
 end

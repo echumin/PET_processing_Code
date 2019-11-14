@@ -21,20 +21,26 @@
 % Evgeny Chumin, Indiana University School of Medicine, 2019
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
-    % set system specific paths
+%% set system specific paths
 addpath(genpath('/datay2/PET_processing_Code/toolbox_matlab_nifti'))
 addpath(genpath('/datay2/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
 %-------------------------------------------------------------------------%
-    % set path to fsl for shape models
+%% set path to fsl for shape models
 fslpath='/usr/local/fsl5.0.11'; %DO NOT PUT A SLASH ON THE END
-    % set path to MNI cerebellar vermis template
+%-------------------------------------------------------------------------%
+%% set path to MNI cerebellar vermis template
 vermisMNI='/datay2/PET_processing_Code/mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz';
 %-------------------------------------------------------------------------%
-    % set data directory paths
+%% set data directory path
 dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
+%-------------------------------------------------------------------------%
+%% set OUTPUT directory and file name
 outDIR='/datay2/chumin-F31/results';
 outFILE='mrtm_20190523_test';
 %-------------------------------------------------------------------------%
+%% set ROI IDs and labels
+    % these labels currently correspond to the modified shen 286 region
+    % parcellation that is available in the IUSM-connectivity-pipeline.
 roiDATA= {'L_', 'R_', 'label';
           267,   25, 'pre_dca'
           264,   52, 'post_dca'
@@ -42,9 +48,17 @@ roiDATA= {'L_', 'R_', 'label';
           277,   11, 'post_dpu'
           155,   114, 'vst'};
 %-------------------------------------------------------------------------%
-% Raclopride half-life
+%% Raclopride half-life
 thalf=20.4;
 
+%% Parse out output file name
+outFILE=fullfile(outDIR,outFILE);
+count=length(dir(strcat(outFILE,'*')));
+if count > 0
+    outFILE=fullfile(sprintf('%s_run%d.mat',outFILE,count+1));
+else
+    outFILE=fullfile(sprintf('%s.mat',outFILE));
+end
 %% Preallocate output data structures
 mrtmOUTbp={'BP'}; mrtmOUTr1={'R1'}; mrtmOUTk2={'k2'}; mrtmOUTk2a={'k2a'}; mrtmOUTk2r={'k2r'};
 for j=1:2
@@ -269,6 +283,10 @@ for p=1:length(petList) % loop over PET scans
         clear counter
         % save subject results
         fileOUT=fullfile(roiDIR,sprintf('%s_mrtm_output.mat',subjDIRS(i).name));
+        count=length(dir(strcat(fileOUT(1:end-4),'*')));
+        if count>0
+            fileOUT=fullfile(roiDIR,sprintf('%s_mrtm_output_run%d.mat',subjDIRS(i).name,count+1));
+        end
         save(fileOUT,'subjMRTMout')
     else
         disp(parcFile)
@@ -279,7 +297,6 @@ for p=1:length(petList) % loop over PET scans
 end
 end
 % save results from the whole subjectlist
-fileOUTall=fullfile(outDIR,sprintf('%s.mat',outFILE));
-save(fileOUTall,'mrtmOUTbp','mrtmOUTk2','mrtmOUTr1','mrtmOUTk2a','mrtmOUTk2r')
+save(outFILE,'mrtmOUTbp','mrtmOUTk2','mrtmOUTr1','mrtmOUTk2a','mrtmOUTk2r')
 close all
 clearvars
