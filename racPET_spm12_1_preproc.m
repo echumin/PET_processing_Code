@@ -30,11 +30,15 @@
 %
 %-------------------------------------------------------------------------%
 %% Set path to your SPM directory.
-addpath(genpath('/usr/local/spm12')) % set path to spm12
+%addpath(genpath('/usr/local/spm12')) % set path to spm12
+addpath(genpath('/home/echumin/Documents/MATLAB/spm12'))
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
-dataDIR='/datay2/chumin-F31/data/CNT/SKYRA'; 
+dataDIR='/projects/pet_processing/datadir'; 
 %-------------------------------------------------------------------------%
+
+
+
 %%
 % Looping across subjects
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
@@ -94,7 +98,7 @@ if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
         mean=dir(fullfile(niiDIR,'mean*.nii'));
         means{p,1}=[fullfile(mean(1).folder,mean(1).name) ',1'];
         clear mean
-%% Motion correct each frame to the early-Mean PET 
+%% Motion correct each frame to the early-Mean PET (Coregistration)
         disp('Coregistering individual frames to respective mean PET')
         matlabbatch{1}.spm.spatial.coreg.estimate.ref{1,1} = means{p,1};
         matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
@@ -113,6 +117,21 @@ if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
         clear matlabbatch{1}.spm.spatial.coreg.estwrite.source
         clear matlabbatch{1}.spm.spatial.coreg.estimate.other
         end  
+        clear matlabbatch
+%% Final Pass Motion Correction
+        disp('Realigning individual frames to respective mean PET')
+        matlabbatch{1}.spm.spatial.realign.estimate.data{1,1}{1,1} = means{p,1};
+        for j=1:length(frames)
+            matlabbatch{1}.spm.spatial.realign.estimate.data{1,1}{j+1,1} = sprintf('%s/%s,1',niiDIR,frames(j).name);
+        end
+        matlabbatch{1}.spm.spatial.realign.estimate.eoptions.quality = 1;
+        matlabbatch{1}.spm.spatial.realign.estimate.eoptions.sep = 4;
+        matlabbatch{1}.spm.spatial.realign.estimate.eoptions.fwhm = 7;
+        matlabbatch{1}.spm.spatial.realign.estimate.eoptions.rtm = 0;
+        matlabbatch{1}.spm.spatial.realign.estimate.eoptions.interp = 4;
+        matlabbatch{1}.spm.spatial.realign.estimate.eoptions.wrap = [0 0 0];
+        matlabbatch{1}.spm.spatial.realign.estimate.eoptions.weight = '';
+        spm_jobman('run',matlabbatch);
         clear matlabbatch
         clear frames
     end
@@ -181,6 +200,4 @@ end
     matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.prefix = 'r2mm_';
     spm_jobman('run',matlabbatch);
     clear matlabbatch
-%% Perforn a final realignment for residual motion assessment and finetunning of coregistration to T1
-    % UNDER CONSTRUCTION
 end
