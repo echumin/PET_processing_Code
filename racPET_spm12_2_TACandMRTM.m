@@ -17,26 +17,29 @@
 % accuracy of time-frame data and making sure sufficient data is available
 % for accurate BP extimation. 
 %
+% Software Requirements:
+%   - afni and fsl (paths for both must be defined n your bashrc)
+%
 % Contributors:
 % Evgeny Chumin, Indiana University School of Medicine, 2019
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 %% set system specific paths
-addpath(genpath('/datay2/PET_processing_Code/toolbox_matlab_nifti'))
-addpath(genpath('/datay2/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
+addpath(genpath('/projects/pet_processing/PET_processing_Code/toolbox_matlab_nifti'))
+addpath(genpath('/projects/pet_processing/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
 %-------------------------------------------------------------------------%
 %% set path to fsl for shape models
 fslpath='/usr/local/fsl5.0.11'; %DO NOT PUT A SLASH ON THE END
 %-------------------------------------------------------------------------%
 %% set path to MNI cerebellar vermis template
-vermisMNI='/datay2/PET_processing_Code/mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz';
+vermisMNI='/projects/pet_processing/PET_processing_Code/mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz';
 %-------------------------------------------------------------------------%
 %% set data directory path
-dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
+dataDIR='/projects/pet_processing/datadir';
 %-------------------------------------------------------------------------%
 %% set OUTPUT directory and file name
-outDIR='/datay2/chumin-F31/results';
-outFILE='mrtm_20190523_test';
+outDIR='/projects/pet_processing/test_out';
+outFILE='mrtm_20200113_test';
 %-------------------------------------------------------------------------%
 %% set ROI IDs and labels
     % these labels currently correspond to the modified shen 286 region
@@ -53,6 +56,9 @@ thalf=20.4;
 
 %% Parse out output file name
 outFILE=fullfile(outDIR,outFILE);
+if ~exist(outDIR,'dir')
+    mkdir(outDIR)
+end
 count=length(dir(strcat(outFILE,'*')));
 if count > 0
     outFILE=fullfile(sprintf('%s_run%d.mat',outFILE,count+1));
@@ -128,31 +134,22 @@ for p=1:length(petList) % loop over PET scans
     frames=dir(fullfile(niiDIR,'FBP_RACd*.nii'));
     numTimePoints=length(frames);
     volNAT=MRIread(fullfile(frames(1).folder,frames(1).name)); volNAT=volNAT.vol;
-    numSlices=size(volNAT,3);
+    numSlices=size(volNAT,3);                                               % find number of slices in each volume
     
     % initialize time-frame data
-    TimeFrames(1,1)=0;
+    TimeFrames(1,1)=0;                                                      % initial TAC point starts at 0
     %referring to dicom data, generate time-frames
-    dcmString=dir(fullfile(petDIR,'Nii-*FBP_RACd*/*.dcm'));
-    dcmPath=dcmString(1).folder;
-    dcmString=strsplit(dcmString(1).name,'-');
-    dcmString=strcat(dcmString{1},'-',dcmString{2},'-');
-    for f=1:numTimePoints
-        d=1+(numSlices*(f-1));
-        if (d<10) 
-            dcmFile=fullfile(dcmPath,sprintf('%s00000%d.dcm',dcmString,d));
-        elseif (d>=10) && (d<100)
-            dcmFile=fullfile(dcmPath,sprintf('%s0000%d.dcm',dcmString,d));
-        elseif (d>=100) && (d<1000)
-            dcmFile=fullfile(dcmPath,sprintf('%s000%d.dcm',dcmString,d));
-        elseif (d>=1000) && (d<10000)
-            dcmFile=fullfile(dcmPath,sprintf('%s00%d.dcm',dcmString,d));
-        end
+    dcmString=dir(fullfile(petDIR,'Nii-*FBP_RACd*/*.dcm'));                 % get list of dicoms
+    dcmPath=dcmString(1).folder;                                            % get full path to dicoms
+    for f=1:numTimePoints                                                   % for every timepoint
+        d=1+(numSlices*(f-1));                                              % find corresponding first slice in volume
+        dcmFile=fullfile(dcmPath,dcmString(d).name);                        % build dicom filename for that slice
+        % get frame duration (millisecond)
         [~,frameLength]=system(sprintf('dicom_hinfo -tag 0018,1242 %s',dcmFile));
-        frameLength=str2double(extractAfter(frameLength,'.dcm '))/1000;
-        TimeFrames(f,2)=TimeFrames(f,1)+frameLength;
-        if f<numTimePoints
-            TimeFrames(f+1,1)=TimeFrames(f,2);
+        frameLength=str2double(extractAfter(frameLength,'.dcm '))/1000;     % convert to double in seconds
+        TimeFrames(f,2)=TimeFrames(f,1)+frameLength;                        % get end time for timepoint
+        if f<numTimePoints                                                  % if this is not the last timepoint
+            TimeFrames(f+1,1)=TimeFrames(f,2);                              % set start of next as end time of current
         end
     end
         
