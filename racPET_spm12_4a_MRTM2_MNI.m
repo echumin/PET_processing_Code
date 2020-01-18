@@ -46,12 +46,11 @@ for i=1:length(subjDIRS)
     disp('%---------------------------------%')
     fprintf('Setting paths to %s data .....\n',subjDIRS(i).name)
     pet1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name);
-    t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
     nii1DIR=fullfile(pet1DIR,'nii_dynamic_preproc');
     cd(pet1DIR)
     % normalize T1 to MNI
         % SPM12
-        matlabbatch{1}.spm.tools.oldseg.data{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',t1DIR);
+        matlabbatch{1}.spm.tools.oldseg.data{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',pet1DIR);
         matlabbatch{1}.spm.tools.oldseg.output.GM = [0 0 0];
         matlabbatch{1}.spm.tools.oldseg.output.WM = [0 0 0];
         matlabbatch{1}.spm.tools.oldseg.output.CSF = [0 0 0];
@@ -73,8 +72,8 @@ for i=1:length(subjDIRS)
         matlabbatch{1}.spm.tools.oldseg.opts.biasfwhm = 60;
         matlabbatch{1}.spm.tools.oldseg.opts.samp = 3;
         matlabbatch{1}.spm.tools.oldseg.opts.msk = {''};
-        matlabbatch{2}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_2mm_fov_denoised_seg_sn.mat',t1DIR);
-        matlabbatch{2}.spm.tools.oldnorm.write.subj.resample{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',t1DIR);
+        matlabbatch{2}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_2mm_fov_denoised_seg_sn.mat',pet1DIR);
+        matlabbatch{2}.spm.tools.oldnorm.write.subj.resample{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',pet1DIR);
         matlabbatch{2}.spm.tools.oldnorm.write.roptions.preserve = 0;
         matlabbatch{2}.spm.tools.oldnorm.write.roptions.bb = [-90 -126 -72
                                                               91 91 109];
@@ -87,7 +86,7 @@ for i=1:length(subjDIRS)
             clear matlabbatch
      
     %write out normalized PET frames (MNI)
-        matlabbatch{1}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_2mm_fov_denoised_seg_sn.mat',t1DIR);
+        matlabbatch{1}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_2mm_fov_denoised_seg_sn.mat',pet1DIR);
         if length(petList) > 1
                 pet2DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(2).name);
                 nii2DIR=fullfile(pet2DIR,'nii_dynamic_preproc');

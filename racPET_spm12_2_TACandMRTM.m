@@ -96,22 +96,20 @@ for i=1:length(subjDIRS)
         warning('No PET directories found. Exiting...')
         return
     end
-    if ~exist(fullfile(t1DIR,'T1_2mm_fov_denoised.nii'),'file')
+    if ~exist(fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'T1_2mm_fov_denoised.nii'),'file')
         warning('T1_2mm_fov_denoised.nii not found. Make sure preproc was ran. Exiting...')
         return
     end
-    if ~exist(fullfile(t1DIR,'T1_2mm_GM_parc_shen_286.nii.gz'),'file')
-        if exist(fullfile(t1DIR,'T1_GM_parc_shen_286.nii.gz'),'file')
-            parc1mm=fullfile(t1DIR,'T1_GM_parc_shen_286.nii.gz');
-            parcFile=fullfile(t1DIR,'T1_2mm_GM_parc_shen_286.nii.gz');
+    parcFile=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'T1_2mm_GM_parc_shen_286.nii.gz');
+    if ~exist(parcFile,'file')
+        parc1mm=fullfile(t1DIR,'T1_GM_parc_shen_286.nii.gz');
+        if exist(parc1mm,'file')
             sentence=sprintf('flirt -in %s -out %s -interp nearestneighbour -applyisoxfm 2 -ref %s',parc1mm,parcFile,parc1mm);
             [~,result]=system(sentence);disp(result)
         else
             warning('T1_GM_parc_shen_286.nii.gz not found. Make sure T1_B was ran. Exiting...')
             return
         end
-    else
-        parcFile=fullfile(t1DIR,'T1_2mm_GM_parc_shen_286.nii.gz');
     end
 %% Loop across PET sessions
 for p=1:length(petList) % loop over PET scans
@@ -194,7 +192,7 @@ for p=1:length(petList) % loop over PET scans
         if ~exist(crblmDIR,'dir')
             mkdir(crblmDIR)
         end
-        T1=fullfile(t1DIR,'T1_2mm_fov_denoised.nii');
+        T1=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'T1_2mm_fov_denoised.nii');
         outBasename=fullfile(crblmDIR,'subj_2_std_subc');
         [~,result]=system(sprintf('first_flirt %s %s -cort',T1,outBasename));disp(result)
         [~,~]=system(sprintf('rm %s/*subc.mat* %s/*subc.nii* %s/*cort.nii*',crblmDIR,crblmDIR,crblmDIR));
@@ -231,7 +229,7 @@ for p=1:length(petList) % loop over PET scans
         crblmFull=fullfile(crblmDIR,'cerebellum_noVermis_full.nii.gz');
         [~,result]=system(sprintf('fslmaths %s/cerebellum_bin_filled.nii.gz -mas %s_binv.nii.gz %s',crblmDIR,vermisNATIVE,crblmFull));disp(result)
         % Isolate cerebellar Gray Matter
-        GM2mm=fullfile(t1DIR,'T1_2mm_GM_mask.nii.gz');
+        GM2mm=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'T1_2mm_GM_mask.nii.gz');
         if ~exist(GM2mm,'file')
             GM1mm=fullfile(t1DIR,'T1_GM_mask.nii.gz');
             if ~exist(GM1mm,'file') 
