@@ -67,16 +67,12 @@ for i=1:length(subjDIRS)
                 pet1frames{j,1} = sprintf('%s/%s,1',nii1DIR,frames(j).name);
             end
             clear frames
-    
+            
     % coregister estimate to template
         % SPM12
-        if length(petList) > 1
-            matlabbatch{1}.spm.spatial.coreg.estimate.other=vertcat(pet1frames,pet2frames);
-        else
-            matlabbatch{1}.spm.spatial.coreg.estimate.other=pet1frames; 
-        end
         matlabbatch{1}.spm.spatial.coreg.estimate.ref{1} = sprintf('%s/canonical/avg152T1.nii,1',spm12_path);
         matlabbatch{1}.spm.spatial.coreg.estimate.source{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',pet1DIR);
+        matlabbatch{1}.spm.spatial.coreg.estimate.other = {''};
         matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
         matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
         matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
@@ -114,53 +110,50 @@ for i=1:length(subjDIRS)
         matlabbatch{3}.spm.tools.oldnorm.write.roptions.wrap = [0 0 0];
         matlabbatch{3}.spm.tools.oldnorm.write.roptions.prefix = 'w';
 
-        spm_jobman('run',matlabbatch);
+         spm_jobman('run',matlabbatch);
             clear matlabbatch
      
     %write out normalized PET frames (MNI)
         matlabbatch{1}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_2mm_fov_denoised_seg_sn.mat',pet1DIR);
         
-
-        if length(petList) > 1
-            matlabbatch{1}.spm.tools.oldnorm.write.subj.resample=vertcat(pet1frames,pet2frames);
-        else
-            matlabbatch{1}.spm.tools.oldnorm.write.subj.resample=pet1frames; 
-        end
-        matlabbatch{1}.spm.tools.oldnorm.write.roptions.preserve = 0;
-        matlabbatch{1}.spm.tools.oldnorm.write.roptions.bb = [-90 -126 -72
-                                                              91 91 109];
-        matlabbatch{1}.spm.tools.oldnorm.write.roptions.vox = [2 2 2];
-        matlabbatch{1}.spm.tools.oldnorm.write.roptions.interp = 4;
-        matlabbatch{1}.spm.tools.oldnorm.write.roptions.wrap = [0 0 0];
-        matlabbatch{1}.spm.tools.oldnorm.write.roptions.prefix = 'w';
-
-        spm_jobman('run',matlabbatch);
-        clear matlabbatch
-
+        
+            if length(petList) > 1
+                matlabbatch{1}.spm.tools.oldnorm.write.subj.resample=vertcat(pet1frames,pet2frames);
+            else
+                matlabbatch{1}.spm.tools.oldnorm.write.subj.resample=pet1frames; 
+            end
+            matlabbatch{1}.spm.tools.oldnorm.write.roptions.preserve = 0;
+            matlabbatch{1}.spm.tools.oldnorm.write.roptions.bb = [-90 -126 -72
+                                                                  91 91 109];
+            matlabbatch{1}.spm.tools.oldnorm.write.roptions.vox = [2 2 2];
+            matlabbatch{1}.spm.tools.oldnorm.write.roptions.interp = 4;
+            matlabbatch{1}.spm.tools.oldnorm.write.roptions.wrap = [0 0 0];
+            matlabbatch{1}.spm.tools.oldnorm.write.roptions.prefix = 'w';
+         
+            spm_jobman('run',matlabbatch);
+            clear matlabbatch
+        
     
-        % Run MRTM2
-        for p=1:length(petList)
-            petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(p).name);
-            niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
-            frames=dir(fullfile(niiDIR,'r2mm_FBP_RACd*.nii'));
-            normDynamicIN=fullfile(niiDIR,['w' frames(1).name]);
-        cerebellum_tac=fullfile(petDIR,'roi_TAC_mrtm/cerebellum_tac.txt');
-        outSubject=fullfile(petDIR,'mrtm2_mni_images');
-        if ~exist(outSubject,'dir')
-            mkdir(outSubject)
-        end
-
-        %usage
-        [BP, k2r, R1, k2, k2a] = mrtm2 (normDynamicIN, 'dec', cerebellum_tac, outSubject, thalf, 'unweighted');
-
-        if ~exist(outDIR,'dir')
-            mkdir(outDIR)
-        end
-        % COPY THE BP IMAME TO GROUP DIRECTORY
-        subjBP=dir(fullfile(outSubject,'wr2mm_*MRTM2*BP.nii'));
-        copyfile([subjBP(1).folder '/' subjBP(1).name], [outDIR '/' petList(p).name '_BP_' subjDIRS(i).name '_MNI_MRTM2.nii'])
-        end
-    else
-        warning('check that MR registered PET frames are present. Exiting...')
+    % Run MRTM2
+    for p=1:length(petList)
+        petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(p).name);
+        niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
+        frames=dir(fullfile(niiDIR,'r2mm_FBP_RACd*.nii'));
+        normDynamicIN=fullfile(niiDIR,['w' frames(1).name]);
+    cerebellum_tac=fullfile(petDIR,'roi_TAC_mrtm/cerebellum_tac.txt');
+    outSubject=fullfile(petDIR,'mrtm2_mni_images');
+    if ~exist(outSubject,'dir')
+        mkdir(outSubject)
+    end
+    
+    %usage
+    [BP, k2r, R1, k2, k2a] = mrtm2 (normDynamicIN, 'dec', cerebellum_tac, outSubject, thalf, 'unweighted');
+    
+    if ~exist(outDIR,'dir')
+        mkdir(outDIR)
+    end
+    % COPY THE BP IMAME TO GROUP DIRECTORY
+    subjBP=dir(fullfile(outSubject,'wr2mm_*MRTM2*BP.nii'));
+    copyfile([subjBP(1).folder '/' subjBP(1).name], [outDIR '/' petList(p).name '_BP_' subjDIRS(i).name '_MNI_MRTM2.nii'])
     end
 end
