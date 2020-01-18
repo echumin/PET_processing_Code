@@ -21,7 +21,8 @@
     % set system specific paths
 addpath(genpath('/datay2/PET_processing_Code/matlabscripts/toolbox_matlab_nifti'))
 addpath(genpath('/datay2/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
-addpath(genpath('/usr/local/spm12'))
+spm12_path='/usr/local/spm12';
+addpath(genpath(spm12_path))
 %-------------------------------------------------------------------------%
     % set data directory paths
 dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
@@ -41,46 +42,54 @@ for i=1:length(subjDIRS)
             petList(end+1).name=dircont(p).name;
         end
     end
- 
+    
     %set hardcoded paths
     disp('%---------------------------------%')
     fprintf('Setting paths to %s data .....\n',subjDIRS(i).name)
     pet1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name);
     nii1DIR=fullfile(pet1DIR,'nii_dynamic_preproc');
     cd(pet1DIR)
-    % normalize T1 to MNI
+    % coregister estimate to template
         % SPM12
-        matlabbatch{1}.spm.tools.oldseg.data{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',pet1DIR);
-        matlabbatch{1}.spm.tools.oldseg.output.GM = [0 0 0];
-        matlabbatch{1}.spm.tools.oldseg.output.WM = [0 0 0];
-        matlabbatch{1}.spm.tools.oldseg.output.CSF = [0 0 0];
-        matlabbatch{1}.spm.tools.oldseg.output.biascor = 1;
-        matlabbatch{1}.spm.tools.oldseg.output.cleanup = 2;
-        matlabbatch{1}.spm.tools.oldseg.opts.tpm = {
-                                                    '/usr/local/spm12/toolbox/OldSeg/grey.nii'
-                                                    '/usr/local/spm12/toolbox/OldSeg/white.nii'
-                                                    '/usr/local/spm12/toolbox/OldSeg/csf.nii'
+        matlabbatch{1}.spm.spatial.coreg.estimate.ref{1} = sprintf('%s/canonical/avg152T1.nii,1',spm12_path);
+        matlabbatch{1}.spm.spatial.coreg.estimate.source{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',pet1DIR);
+        matlabbatch{1}.spm.spatial.coreg.estimate.other = {''};
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
+        matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
+    % normalize T1 to MNI
+        matlabbatch{2}.spm.tools.oldseg.data{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',pet1DIR);
+        matlabbatch{2}.spm.tools.oldseg.output.GM = [0 0 0];
+        matlabbatch{2}.spm.tools.oldseg.output.WM = [0 0 0];
+        matlabbatch{2}.spm.tools.oldseg.output.CSF = [0 0 0];
+        matlabbatch{2}.spm.tools.oldseg.output.biascor = 1;
+        matlabbatch{2}.spm.tools.oldseg.output.cleanup = 2;
+        matlabbatch{2}.spm.tools.oldseg.opts.tpm = {
+                                                    sprintf('%s/toolbox/OldSeg/grey.nii',spm12_path)
+                                                    sprintf('%s/toolbox/OldSeg/white.nii',spm12_path)
+                                                    sprintf('%s/toolbox/OldSeg/csf.nii',spm12_path)
                                                     };
-        matlabbatch{1}.spm.tools.oldseg.opts.ngaus = [2
+        matlabbatch{2}.spm.tools.oldseg.opts.ngaus = [2
                                                       2
                                                       2
                                                       4];
-        matlabbatch{1}.spm.tools.oldseg.opts.regtype = 'mni';
-        matlabbatch{1}.spm.tools.oldseg.opts.warpreg = 1;
-        matlabbatch{1}.spm.tools.oldseg.opts.warpco = 25;
-        matlabbatch{1}.spm.tools.oldseg.opts.biasreg = 0.0001;
-        matlabbatch{1}.spm.tools.oldseg.opts.biasfwhm = 60;
-        matlabbatch{1}.spm.tools.oldseg.opts.samp = 3;
-        matlabbatch{1}.spm.tools.oldseg.opts.msk = {''};
-        matlabbatch{2}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_2mm_fov_denoised_seg_sn.mat',pet1DIR);
-        matlabbatch{2}.spm.tools.oldnorm.write.subj.resample{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',pet1DIR);
-        matlabbatch{2}.spm.tools.oldnorm.write.roptions.preserve = 0;
-        matlabbatch{2}.spm.tools.oldnorm.write.roptions.bb = [-90 -126 -72
+        matlabbatch{2}.spm.tools.oldseg.opts.regtype = 'mni';
+        matlabbatch{2}.spm.tools.oldseg.opts.warpreg = 1;
+        matlabbatch{2}.spm.tools.oldseg.opts.warpco = 25;
+        matlabbatch{2}.spm.tools.oldseg.opts.biasreg = 0.0001;
+        matlabbatch{2}.spm.tools.oldseg.opts.biasfwhm = 60;
+        matlabbatch{2}.spm.tools.oldseg.opts.samp = 3;
+        matlabbatch{2}.spm.tools.oldseg.opts.msk = {''};
+        matlabbatch{3}.spm.tools.oldnorm.write.subj.matname{1} = sprintf('%s/T1_2mm_fov_denoised_seg_sn.mat',pet1DIR);
+        matlabbatch{3}.spm.tools.oldnorm.write.subj.resample{1} = sprintf('%s/T1_2mm_fov_denoised.nii,1',pet1DIR);
+        matlabbatch{3}.spm.tools.oldnorm.write.roptions.preserve = 0;
+        matlabbatch{3}.spm.tools.oldnorm.write.roptions.bb = [-90 -126 -72
                                                               91 91 109];
-        matlabbatch{2}.spm.tools.oldnorm.write.roptions.vox = [2 2 2];
-        matlabbatch{2}.spm.tools.oldnorm.write.roptions.interp = 4;
-        matlabbatch{2}.spm.tools.oldnorm.write.roptions.wrap = [0 0 0];
-        matlabbatch{2}.spm.tools.oldnorm.write.roptions.prefix = 'w';
+        matlabbatch{3}.spm.tools.oldnorm.write.roptions.vox = [2 2 2];
+        matlabbatch{3}.spm.tools.oldnorm.write.roptions.interp = 4;
+        matlabbatch{3}.spm.tools.oldnorm.write.roptions.wrap = [0 0 0];
+        matlabbatch{3}.spm.tools.oldnorm.write.roptions.prefix = 'w';
 
          spm_jobman('run',matlabbatch);
             clear matlabbatch
