@@ -228,63 +228,71 @@ for p=1:length(petList) % loop over PET scans
             vermisMNI,vermisNATIVE,T1,invwarp,invconcmat));disp(result)
         % use inverse vermins mask to remove it from cerebellum mask
         [~,result]=system(sprintf('fslmaths %s.nii.gz -binv %s_binv',vermisNATIVE,vermisNATIVE));disp(result)
-        crblmFINAL=fullfile(crblmDIR,'cerebellum_noVermis.nii.gz');
-        [~,result]=system(sprintf('fslmaths %s/cerebellum_bin_filled.nii.gz -mas %s_binv.nii.gz %s',crblmDIR,vermisNATIVE,crblmFINAL));disp(result)
+        crblmFull=fullfile(crblmDIR,'cerebellum_noVermis_full.nii.gz');
+        [~,result]=system(sprintf('fslmaths %s/cerebellum_bin_filled.nii.gz -mas %s_binv.nii.gz %s',crblmDIR,vermisNATIVE,crblmFull));disp(result)
         % Isolate cerebellar Gray Matter
         GM2mm=fullfile(t1DIR,'T1_2mm_GM_mask.nii.gz');
         if ~exist(GM2mm,'file')
             GM1mm=fullfile(t1DIR,'T1_GM_mask.nii.gz');
-            sentence=sprintf('flirt -in %s -out %s -interp nearestneighbour -applyisoxfm 2 -ref %s',GM1mm,GM2mm,GM1mm);
-            [~,result]=system(sentence);disp(result)
-        end 
-        [~,result]=system(sprintf('fslmaths %s -mas %s %s',crblmFINAL,GM2mm,crblmFINAL));disp(result)
-        
-        fprintf('Extracting TAC for cerebellar reference.\n')
-        volROI = MRIread(crblmFINAL); volROI=volROI.vol;
-        for timePoint=1:numTimePoints
-            aux=reshape(volPET(:,:,:,timePoint),[sizeX,sizeY,sizeZ]); 
-            TACcrblm(timePoint,1)=nanmean(aux(volROI>0));
-            clear aux
-        end       
-        tac_crblm_txt=horzcat(TimeFrames,TACcrblm);
-        dlmwrite(fullfile(roiDIR,'cerebellum_tac.txt'),tac_crblm_txt,'delimiter','\t','precision','%.6f')
-        clear TAC tac_crblm_txt 
-        
-       % pleallocate MRTM outputs
-        subjMRTMout={'ROI','BP','R1','k2','k2a','k2r'};
-        mrtmOUTbp{end+1,1}=subjDIRS(i).name;
-        mrtmOUTr1{end+1,1}=subjDIRS(i).name;
-        mrtmOUTk2{end+1,1}=subjDIRS(i).name;
-        mrtmOUTk2a{end+1,1}=subjDIRS(i).name;
-        mrtmOUTk2r{end+1,1}=subjDIRS(i).name;
-        % Looping over the ROI
-        counter=1;
-        for j=1:2
-            for k=2:6
-                counter=counter+1;
-                roiOUT=fullfile(roiDIR,sprintf('%s%s.nii.gz',roiDATA{1,j},roiDATA{k,3}));
-                subjMRTMout{end+1,1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,3});
-                fprintf('Running MRTM for %s\n',roiOUT)
-                Ct=fullfile(roiDIR,sprintf('%s%s_tac.txt',roiDATA{1,j},roiDATA{k,3}));
-                Cr=fullfile(roiDIR,'cerebellum_tac.txt');
-                [BP, R1, k2, k2a, k2r] = mrtm (Ct, Cr, roiDIR, thalf, 'conventional');
-                subjMRTMout{end,2}=BP;  mrtmOUTbp{end,counter}=BP;
-                subjMRTMout{end,3}=R1;  mrtmOUTr1{end,counter}=R1;
-                subjMRTMout{end,4}=k2;  mrtmOUTk2{end,counter}=k2;
-                subjMRTMout{end,5}=k2a; mrtmOUTk2a{end,counter}=k2a;
-                subjMRTMout{end,6}=k2r; mrtmOUTk2r{end,counter}=k2r;
-                clear BP R1 k2 k2a k2r
-                close all
+            if ~exist(GM1mm,'file') 
+                sentence=sprintf('flirt -in %s -out %s -interp nearestneighbour -applyisoxfm 2 -ref %s',GM1mm,GM2mm,GM1mm);
+                [~,result]=system(sentence);disp(result)
             end
         end
-        clear counter
-        % save subject results
-        fileOUT=fullfile(roiDIR,sprintf('%s_mrtm_output.mat',subjDIRS(i).name));
-        count=length(dir(strcat(fileOUT(1:end-4),'*')));
-        if count>0
-            fileOUT=fullfile(roiDIR,sprintf('%s_mrtm_output_run%d.mat',subjDIRS(i).name,count+1));
+        if exist(G2mm,'file')
+            crblmFINAL=fullfile(crblmDIR,'cerebellum_noVermis.nii.gz');
+            [~,result]=system(sprintf('fslmaths %s -mas %s %s',crblmFull,GM2mm,crblmFINAL));disp(result)
+
+            fprintf('Extracting TAC for cerebellar reference.\n')
+            volROI = MRIread(crblmFINAL); volROI=volROI.vol;
+            for timePoint=1:numTimePoints
+                aux=reshape(volPET(:,:,:,timePoint),[sizeX,sizeY,sizeZ]); 
+                TACcrblm(timePoint,1)=nanmean(aux(volROI>0));
+                clear aux
+            end       
+            tac_crblm_txt=horzcat(TimeFrames,TACcrblm);
+            dlmwrite(fullfile(roiDIR,'cerebellum_tac.txt'),tac_crblm_txt,'delimiter','\t','precision','%.6f')
+            clear TAC tac_crblm_txt 
+
+           % pleallocate MRTM outputs
+            subjMRTMout={'ROI','BP','R1','k2','k2a','k2r'};
+            mrtmOUTbp{end+1,1}=subjDIRS(i).name;
+            mrtmOUTr1{end+1,1}=subjDIRS(i).name;
+            mrtmOUTk2{end+1,1}=subjDIRS(i).name;
+            mrtmOUTk2a{end+1,1}=subjDIRS(i).name;
+            mrtmOUTk2r{end+1,1}=subjDIRS(i).name;
+            % Looping over the ROI
+            counter=1;
+            for j=1:2
+                for k=2:6
+                    counter=counter+1;
+                    roiOUT=fullfile(roiDIR,sprintf('%s%s.nii.gz',roiDATA{1,j},roiDATA{k,3}));
+                    subjMRTMout{end+1,1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,3});
+                    fprintf('Running MRTM for %s\n',roiOUT)
+                    Ct=fullfile(roiDIR,sprintf('%s%s_tac.txt',roiDATA{1,j},roiDATA{k,3}));
+                    Cr=fullfile(roiDIR,'cerebellum_tac.txt');
+                    [BP, R1, k2, k2a, k2r] = mrtm (Ct, Cr, roiDIR, thalf, 'conventional');
+                    subjMRTMout{end,2}=BP;  mrtmOUTbp{end,counter}=BP;
+                    subjMRTMout{end,3}=R1;  mrtmOUTr1{end,counter}=R1;
+                    subjMRTMout{end,4}=k2;  mrtmOUTk2{end,counter}=k2;
+                    subjMRTMout{end,5}=k2a; mrtmOUTk2a{end,counter}=k2a;
+                    subjMRTMout{end,6}=k2r; mrtmOUTk2r{end,counter}=k2r;
+                    clear BP R1 k2 k2a k2r
+                    close all
+                end
+            end
+            clear counter
+            % save subject results
+            fileOUT=fullfile(roiDIR,sprintf('%s_mrtm_output.mat',subjDIRS(i).name));
+            count=length(dir(strcat(fileOUT(1:end-4),'*')));
+            if count>0
+                fileOUT=fullfile(roiDIR,sprintf('%s_mrtm_output_run%d.mat',subjDIRS(i).name,count+1));
+            end
+            save(fileOUT,'subjMRTMout')
+        else
+            disp(G2mm)
+            fprintf(2,'No GM mask available. Makes sure a connectivity pipeline T1_GM_mask exists.\n')
         end
-        save(fileOUT,'subjMRTMout')
     else
         disp(parcFile)
         disp(niiDIR)
