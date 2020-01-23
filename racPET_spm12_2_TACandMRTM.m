@@ -237,7 +237,7 @@ for p=1:length(petList) % loop over PET scans
                 [~,result]=system(sentence);disp(result)
             end
         end
-        if exist(G2mm,'file')
+        if exist(GM2mm,'file')
             crblmFINAL=fullfile(crblmDIR,'cerebellum_noVermis.nii.gz');
             [~,result]=system(sprintf('fslmaths %s -mas %s %s',crblmFull,GM2mm,crblmFINAL));disp(result)
 
