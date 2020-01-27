@@ -234,9 +234,9 @@ for p=1:length(petList) % loop over PET scans
         GM2mm=fullfile(t1DIR,'T1_2mm_GM_mask.nii.gz');
         if ~exist(GM2mm,'file')
             GM1mm=fullfile(t1DIR,'T1_GM_mask.nii.gz');
-            if ~exist(GM1mm,'file') 
+            if exist(GM1mm,'file')
                 sentence=sprintf('flirt -in %s -out %s -interp nearestneighbour -applyisoxfm 2 -ref %s',GM1mm,GM2mm,GM1mm);
-                [~,result]=system(sentence);disp(result)
+                [~,result]=system(sentence);disp(result) 
             end
         end
         if exist(GM2mm,'file')

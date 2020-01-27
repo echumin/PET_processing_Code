@@ -60,7 +60,7 @@ for i=1:length(h)
     end
 end
 clear m r
-p1=mtit(o1,strcat(subjDIRS(s).name,' ',petList(p).name,' Page 1/2'));
+sgtitle(o1,[subjDIRS(s).name,' ',petList(p).name,' Page 1/2']);
 
 for i=1:length(h)/2
     copyobj(fig{i,1},s1{i,1})
@@ -97,7 +97,7 @@ for i=1:length(h)
     end
 end
 clear m r
-p2=mtit(o2,strcat(subjDIRS(s).name,' ',petList(p).name,' Page 2/2'));
+sgtitle(o2,[subjDIRS(s).name,' ',petList(p).name,' Page 2/2']);
 
 for i=1:length(h)/2
     k=i+length(h)/2;
