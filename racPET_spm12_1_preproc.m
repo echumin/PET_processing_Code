@@ -165,7 +165,7 @@ if length(petList)>1
 end
 %% Coregister all scans to T1_fov_denoised
     T1in=fullfile(t1DIR,'T1_fov_denoised.nii');
-    T1out=fullfile(t1DIR,'T1_2mm_fov_denoised');
+    T1out=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'T1_2mm_fov_denoised');
     sentence=sprintf('flirt -in %s -out %s -interp spline -applyisoxfm 2 -ref %s',T1in,T1out,T1in);
     [~,result]=system(sentence);
     if ~isempty(result)
