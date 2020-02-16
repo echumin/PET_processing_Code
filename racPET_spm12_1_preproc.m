@@ -1,8 +1,8 @@
 % racPET_spm12_1_preproc.m
 %
-% Raclopride PET image processing batch script.
+% Raclopride PET image pre-processing batch script.
 %
-% Data should follow the connectvitity pipeline layout, e.g.
+% Data should follow the IUSM-connectvitity-pipeline layout, e.g.
 %   a PET directory should be created in the subject directory that
 %   contains a link (e.g. datadir) to the dicom PET data
 %   This code expects that mCT2nii has been ran on the data, which means
@@ -21,22 +21,24 @@
 %
 %Contributons:
 %  Evgeny Chumin, Indiana University School of Medicine, 2019
+%                 Indiana University, Bloomington, 2020 
 %  Mario Dzemidzic, Indiana University School of Medicine, 2019
 %
 % Additional Notes:
-%   This code was written with spm12 and fsl5.0.10 (eddy patched)
+%   This code was written with spm12 (matlab19b) and fsl5.0.10 
+%   (eddy patched) later tested with fsl6.0.1.
 %   Required MRIread and MRIwrite functions available from the
 %   toolbox_matlab_nifti.
 %
 %-------------------------------------------------------------------------%
 %% Set path to your SPM directory.
-%addpath(genpath('/usr/local/spm12')) % set path to spm12
-addpath(genpath('/home/echumin/Documents/MATLAB/spm12'))
+addpath(genpath('/usr/local/spm12')) % set path to spm12
+%addpath(genpath('/home/echumin/Documents/MATLAB/spm12'))
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
 dataDIR='/projects/pet_processing/datadir'; 
 %-------------------------------------------------------------------------%
-
+SkullStripMeanPET = 1;
 
 
 %%
@@ -146,20 +148,30 @@ end
 %% Coregister the scan2 mean PET images and frames to scan1
 cd(fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name))
 if length(petList)>1
-    disp('Realigning PET2 to PET1')
-    matlabbatch{1}.spm.spatial.coreg.estimate.ref{1,1} = means{1,1};
-    matlabbatch{1}.spm.spatial.coreg.estimate.source{1,1} = means{2,1};
+    if SkullStripMeanPET == 1
+        disp('Mean PET images will be skull stripped prior to coregistration')
+        [masked_means] = f_maskPET(means);
+        matlabbatch{1}.spm.spatial.coreg.estimate.ref{1,1} = masked_means{1,1};
+        matlabbatch{1}.spm.spatial.coreg.estimate.source{1,1} = masked_means{2,1};
+    else
+        matlabbatch{1}.spm.spatial.coreg.estimate.ref{1,1} = means{1,1};
+        matlabbatch{1}.spm.spatial.coreg.estimate.source{1,1} = means{2,1};
+    end
     nii2DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(2).name,'nii_dynamic_preproc');
     frames=dir(fullfile(nii2DIR,'FBP*.nii'));
     for j=1:length(frames)
         other2{j,1}=[nii2DIR '/' frames(j).name ',1'];
     end
     clear frames
+    if SkullStripMeanPET == 1
+        other2{end+1,1}=means{2,1};
+    end
     matlabbatch{1}.spm.spatial.coreg.estimate.other = other2;
     matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
     matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
     matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
     matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
+    disp('Realigning PET2 to PET1')
     spm_jobman('run',matlabbatch);
     clear matlabbatch
 end
@@ -171,7 +183,7 @@ end
     if ~isempty(result)
         disp(result)
     end
-    sentence=sprintf('gunzip %s.nii.gz',T1out);
+    sentence=sprintf('gunzip -f %s.nii.gz',T1out);
     [~,result]=system(sentence);
     if ~isempty(result)
         disp(result)
@@ -185,7 +197,9 @@ end
         other1{j,1}=[nii1DIR '/' frames(j).name ',1'];
     end
     clear frames
-    if length(petList)>1
+    if length(petList)>1 && SkullStripMeanPET == 1
+        matlabbatch{1}.spm.spatial.coreg.estwrite.other = vertcat(other1,other2);
+    elseif length(petList)>1 && SkullStripMeanPET ~= 1
         matlabbatch{1}.spm.spatial.coreg.estwrite.other = vertcat(other1,means{2:end,1},other2);
     else
         matlabbatch{1}.spm.spatial.coreg.estwrite.other = other1; 
