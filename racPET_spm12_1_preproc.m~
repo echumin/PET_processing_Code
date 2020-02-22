@@ -39,12 +39,10 @@ addpath(genpath('/projects/pet_processing/Jenya_temp/PET_processing_Code'))
 %% Set location of the subject directories.
 dataDIR='/projects/pet_processing/Jenya_temp/datadir'; 
 %-------------------------------------------------------------------------%
-SkullStripMeanPET = 0;
+SkullStripMeanPET = 1;
 %% WARNING %%
 % be very careful when using this parameter to edit field of view as you
-% can crop the cerebellum if you are not carefull. This is mean to be used
-% on specific subject retuns where there is high noise in the inferior of
-% the image
+% can crop the cerebellum if you are not carefull. 
 Edit_inferiorZslices = 0;
 
 
