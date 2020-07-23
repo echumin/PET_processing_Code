@@ -33,24 +33,26 @@
 %-------------------------------------------------------------------------%
 %% Set path to your SPM directory.
 addpath(genpath('/usr/local/spm12')) % set path to spm12
-addpath(genpath('/projects/pet_processing/Jenya_temp/PET_processing_Code'))
+addpath(genpath('/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_processing_Code'))
 %addpath(genpath('/home/echumin/Documents/MATLAB/spm12'))
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
-dataDIR='/projects/pet_processing/Jenya_temp/datadir'; 
+dataDIR='/data01/W2D/datadir_3'; 
 %-------------------------------------------------------------------------%
-SkullStripMeanPET = 0;
+SkullStripMeanPET = 0; % 1 to use T1-derived brain mask
 %% WARNING %%
 % be very careful when using this parameter to edit field of view as you
 % can crop the cerebellum if you are not carefull. This is mean to be used
 % on specific subject retuns where there is high noise in the inferior of
 % the image
-Edit_inferiorZslices = 0;
+Edit_inferiorZslices = 0; % dangerous flag
+% to remove inferior slices enter "-N" (+N to add)
 
 
 %%
 % Looping across subjects
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+%subjDIRS=dir([dataDIR '/*95']); this was to run a specific subject
 for i=1:length(subjDIRS)
     % set PET subdirectory names
     dircont=dir(fullfile(subjDIRS(i).folder,subjDIRS(i).name)); dircont(1:2)=[];

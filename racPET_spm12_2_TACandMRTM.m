@@ -25,21 +25,21 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 %% set system specific paths
-addpath(genpath('/projects/pet_processing/PET_processing_Code/toolbox_matlab_nifti'))
-addpath(genpath('/projects/pet_processing/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
+addpath(genpath('/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_processing_Code/toolbox_matlab_nifti'))
+addpath(genpath('/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
 %-------------------------------------------------------------------------%
 %% set path to fsl for shape models
-fslpath='/usr/local/fsl5.0.11'; %DO NOT PUT A SLASH ON THE END
+fslpath='/usr/bin/fsl'; %DO NOT PUT A SLASH ON THE END
 %-------------------------------------------------------------------------%
 %% set path to MNI cerebellar vermis template
-vermisMNI='/projects/pet_processing/PET_processing_Code/mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz';
+vermisMNI='/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_processing_Code/mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz';
 %-------------------------------------------------------------------------%
 %% set data directory path
-dataDIR='/projects/pet_processing/datadir';
+dataDIR='/data01/W2D/datadir_3';
 %-------------------------------------------------------------------------%
 %% set OUTPUT directory and file name
-outDIR='/projects/pet_processing/test_out';
-outFILE='mrtm_20200113_test';
+outDIR='/data01/W2D/datadir_out_3';
+outFILE='mrtm_20200716_test';
 %-------------------------------------------------------------------------%
 %% set ROI IDs and labels
     % these labels currently correspond to the modified shen 286 region
@@ -78,6 +78,7 @@ for j=1:2
 end
 %% Loop accross subjects        
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+% subjDIRS=dir([dataDIR '/*95']); % this was to run a specific subject
 for i=1:length(subjDIRS)
     disp('%---------------------------------%')
     fprintf('Setting paths to %s data .....\n',subjDIRS(i).name)

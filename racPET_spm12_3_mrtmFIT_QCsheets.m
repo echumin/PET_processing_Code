@@ -8,8 +8,8 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 % set data directory paths
-dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
-outDIR='/datay2/chumin-F31/results/mrtm_qc_sheets/test';
+dataDIR='/data01/W2D/datadir_3';
+outDIR='/data01/W2D/datadir_out_3';
 
 if ~exist(outDIR,'dir')
     mkdir(outDIR)
@@ -17,6 +17,7 @@ end
 
 %% Loop accross subjects        
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+% subjDIRS=dir([dataDIR '/*95']); this was to run a specific subject
 for s=1:length(subjDIRS)
     disp(subjDIRS(s).name)
     dircont=dir(fullfile(subjDIRS(s).folder,subjDIRS(s).name)); dircont(1:2)=[];
