@@ -81,6 +81,7 @@ if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
            end
            cd(petDIR)
            fprintf('Generating an early-Mean PET for %s\n',petList(p).name)
+           spm_figure('GetWin','Graphics');
            for j=2:15
                copyfile(fullfile(niiDIR,frames(j).name),[niiDIR '/tmp_' frames(j).name])
                matlabbatch{1}.spm.spatial.realign.estwrite.data{1,1}{j-1,1}=sprintf('%s/tmp_%s,1',niiDIR,frames(j).name);
@@ -99,6 +100,7 @@ if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
             matlabbatch{1}.spm.spatial.realign.estwrite.roptions.prefix = 'r';
             spm_jobman('run',matlabbatch);
             clear matlabbatch
+            ps_rename('spm_earlyMean.ps')
             delete(fullfile(niiDIR,'tmp_*'))
             tmp=dir(fullfile(niiDIR,'*tmp*'));
             movefile([niiDIR '/' tmp(1).name],[niiDIR '/mean' extractAfter(tmp(1).name,'tmp_')])
@@ -113,6 +115,7 @@ if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
         clear mean
 %% Motion correct each frame to the early-Mean PET (Coregistration)
         disp('Coregistering individual frames to respective mean PET')
+        spm_figure('GetWin','Graphics');
         matlabbatch{1}.spm.spatial.coreg.estwrite.ref{1,1} = means{p,1};
         matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.cost_fun = 'nmi';
         matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.sep = [4 2];
@@ -135,8 +138,10 @@ if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
         clear matlabbatch{1}.spm.spatial.coreg.estwrite.other
         end  
         clear matlabbatch
+        ps_rename('spm_coreg2mean.ps')
 %% Final Pass Motion Correction
         disp('Realigning individual frames to respective mean PET')
+        spm_figure('GetWin','Graphics');
         matlabbatch{1}.spm.spatial.realign.estimate.data{1,1}{1,1} = means{p,1};
         for j=1:length(frames)
             matlabbatch{1}.spm.spatial.realign.estimate.data{1,1}{j+1,1} = sprintf('%s/%s,1',niiDIR,['r' frames(j).name]);
@@ -151,6 +156,7 @@ if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
         spm_jobman('run',matlabbatch);
         clear matlabbatch
         clear frames
+        ps_rename('spm_finalRealign.ps')
     end
 else
     warning('No T1_fov_denoised found. Run IUSM-connectivity-pipeline T1_A and B.')
@@ -165,6 +171,7 @@ cd(fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name))
 if length(petList)>1
     if SkullStripMeanPET == 1
         disp('Mean PET images will be skull stripped prior to coregistration')
+        spm_figure('GetWin','Graphics');
         [masked_means] = f_maskPET(means);
         matlabbatch{1}.spm.spatial.coreg.estimate.ref{1,1} = masked_means{1,1};
         matlabbatch{1}.spm.spatial.coreg.estimate.source{1,1} = masked_means{2,1};
@@ -189,6 +196,7 @@ if length(petList)>1
     disp('Realigning PET2 to PET1')
     spm_jobman('run',matlabbatch);
     clear matlabbatch
+    ps_rename('spm_coregPET2toPET1.ps')
 end
 %% Coregister all scans to T1_fov_denoised
     T1in=fullfile(t1DIR,'T1_fov_denoised.nii');
@@ -203,7 +211,8 @@ end
     if ~isempty(result)
         disp(result)
     end
-
+    
+    spm_figure('GetWin','Graphics');
     matlabbatch{1}.spm.spatial.coreg.estwrite.ref = {sprintf('%s.nii,1',T1out)};
     matlabbatch{1}.spm.spatial.coreg.estwrite.source{1,1} = means{1,1};
     nii1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'nii_dynamic_preproc');
@@ -229,4 +238,5 @@ end
     matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.prefix = 'r2mm_';
     spm_jobman('run',matlabbatch);
     clear matlabbatch
+    ps_rename('spm_coregAll2T1.ps')
 end

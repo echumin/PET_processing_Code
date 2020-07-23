@@ -70,6 +70,7 @@ for i=1:length(subjDIRS)
     
     % coregister estimate to template
         % SPM12
+        spm_figure('GetWin','Graphics');
         if length(petList) > 1
             matlabbatch{1}.spm.spatial.coreg.estimate.other=vertcat(pet1frames,pet2frames);
         else
@@ -136,7 +137,7 @@ for i=1:length(subjDIRS)
 
         spm_jobman('run',matlabbatch);
         clear matlabbatch
-
+        ps_rename('spm_norm2MNI.ps')
     
         % Run MRTM2
         for p=1:length(petList)
