@@ -5,12 +5,14 @@
 %
 % Contributors:
 % Evgeny Chumin, Indiana University School of Medicine, 2019
+%                Indiana University, Bloomington, 2020
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 % set data directory paths
-dataDIR='/data01/W2D/datadir_3';
-outDIR='/data01/W2D/datadir_out_3';
+dataDIR='/data01/W2D/datadir_4';
+outDIR='/data01/W2D/datadir_out_4';
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if ~exist(outDIR,'dir')
     mkdir(outDIR)
 end
@@ -34,93 +36,95 @@ for p=1:length(petList) % loop over PET scans
 % get figure names
 modelfit=dir(fullfile(datadir,'*modelfit.fig'));
 wresid=dir(fullfile(datadir,'*wresid.fig'));
+nr = size(modelfit,1); %number of roi
 
 % load in the figures and get handle of axes and all children
-for i=1:length(modelfit)
+for i=1:nr
     h{i,1}=openfig(fullfile(modelfit(i).folder,modelfit(i).name),'reuse');
     ax{i,1}=gca; pause(.5)
-    fig{i,1}=get(ax{i,1},'children');
+    fig{i,1}=get(ax{i,1},'children'); pause(.5)
     fig{i,1}(2).MarkerSize=4; fig{i,1}(3).MarkerSize=4;
     h{i,2}=openfig(fullfile(wresid(i).folder,wresid(i).name),'reuse');
-    ax{i,2}=gca;pause(.5)
-    fig{i,2}=get(ax{i,2},'children');
+    ax{i,2}=gca; pause(.5)
+    fig{i,2}=get(ax{i,2},'children'); pause(.5)
     fig{i,2}(2).MarkerSize=4;
 end
 
-o1=figure('Position',[1 1 675 900]);
+nump = ceil(nr/5);
+for pg=1:nump
+    switch pg
+        case nump % last page
+            lft = nr-(5*(pg-1)); % number of remaining regions
+            ofig{pg}=figure('Position',[1 1 675 900]);
+            m=0;r=0;
+            for i=1:lft*2
+                if mod(i,2)==1
+                    m=m+1;
+                    t=m+(5*(pg-1));
+                    sfig{m,1}=subplot(5,2,i);
+                    title(strrep(extractBefore(modelfit(t).name,'_tac_MRTM_modelfit'),'_','-'))
+                elseif mod(i,2)==0
+                    r=r+1;
+                    sfig{r,2}=subplot(5,2,i);
+                end
+            end
+            clear m r
+            sgtitle(ofig{pg},sprintf('%s %s Page %d/%d',subjDIRS(s).name,petList(p).name,pg,nump));
 
-m=0;r=0;
-for i=1:length(h)
-    if mod(i,2)==1
-        m=m+1;
-        s1{m,1}=subplot(length(h)/2,2,i);
-        title(strrep(extractBefore(modelfit(m).name,'_tac_MRTM_modelfit'),'_','-'))
-    elseif mod(i,2)==0
-        r=r+1;
-        s1{r,2}=subplot(length(h)/2,2,i);
+            for i=1:lft
+                k=i+5*(pg-1);
+                copyobj(fig{k,1},sfig{i,1})
+                copyobj(fig{k,2},sfig{i,2})
+                if i==ceil(lft/2)
+                    ylabel(sfig{i,1},'Tracer Concentration')
+                    ylabel(sfig{i,2},'Weighted Residuals')
+                end
+                if i==lft
+                    xlabel(sfig{i,1},'Time (min)')
+                    xlabel(sfig{i,2},'Time (min)')
+                end
+            end
+            fileout=fullfile(datadir,sprintf('%s-MRTMfits_%s_p%dof%d.pdf',subjDIRS(s).name,petList(p).name,pg,nump));
+            print(ofig{pg},'-dpdf',fileout,'-fillpage')
+            copyfile(fileout,outDIR)
+            clear sfig fileout lft
+
+        otherwise % all preceeding pages
+            ofig{pg}=figure('Position',[1 1 675 900]);
+            m=0;r=0;
+            for i=1:10
+                if mod(i,2)==1
+                    m=m+1;
+                    t=m+5*(pg-1);
+                    sfig{m,1}=subplot(5,2,i);
+                    title(strrep(extractBefore(modelfit(t).name,'_tac_MRTM_modelfit'),'_','-'))
+                elseif mod(i,2)==0
+                    r=r+1;
+                    sfig{r,2}=subplot(5,2,i);
+                end
+            end
+            clear m r
+            sgtitle(ofig{pg},sprintf('%s %s Page %d/%d',subjDIRS(s).name,petList(p).name,pg,nump));
+
+            for i=1:5
+                k=i+5*(pg-1);
+                copyobj(fig{k,1},sfig{i,1})
+                copyobj(fig{k,2},sfig{i,2})
+                if i==3
+                    ylabel(sfig{i,1},'Tracer Concentration')
+                    ylabel(sfig{i,2},'Weighted Residuals')
+                end
+                if i==5
+                    xlabel(sfig{i,1},'Time (min)')
+                    xlabel(sfig{i,2},'Time (min)')
+                end
+            end
+            fileout=fullfile(datadir,sprintf('%s-MRTMfits_%s_p%dof%d.pdf',subjDIRS(s).name,petList(p).name,pg,nump));
+            print(ofig{pg},'-dpdf',fileout,'-fillpage')
+            copyfile(fileout,outDIR)
+            clear sfig fileout
     end
 end
-clear m r
-sgtitle(o1,[subjDIRS(s).name,' ',petList(p).name,' Page 1/2']);
-
-for i=1:length(h)/2
-    copyobj(fig{i,1},s1{i,1})
-    if i==3
-        ylabel(s1{i,1},'Tracer Concentration')
-    end
-    if i==5
-        xlabel(s1{i,1},'Time (min)')
-    end
-    copyobj(fig{i,2},s1{i,2})
-    if i==3
-        ylabel(s1{i,2},'Weighted Residuals')
-    end
-    if i==5
-        xlabel(s1{i,2},'Time (min)')
-    end
-end
-    
-print(fullfile(datadir,sprintf('%s-MRTMfits_%s_p1of2.pdf',subjDIRS(s).name,petList(p).name)),'-dpdf','-fillpage')
-copyfile(fullfile(datadir,sprintf('%s-MRTMfits_%s_p1of2.pdf',subjDIRS(s).name,petList(p).name)),outDIR)
-
-o2=figure('Position',[1 1 675 900]);
-
-m=0; r=0;
-for i=1:length(h)
-    if mod(i,2)==1
-        m=m+1;
-        t=m+length(h)/2;
-        s2{m,1}=subplot(length(h)/2,2,i);
-        title(strrep(extractBefore(modelfit(t).name,'_tac_MRTM_modelfit'),'_','-'))
-    elseif mod(i,2)==0
-        r=r+1;
-        s2{r,2}=subplot(length(h)/2,2,i);
-    end
-end
-clear m r
-sgtitle(o2,[subjDIRS(s).name,' ',petList(p).name,' Page 2/2']);
-
-for i=1:length(h)/2
-    k=i+length(h)/2;
-    copyobj(fig{k,1},s2{i,1})
-    if i==3
-        ylabel(s2{i,1},'Tracer Concentration')
-    end
-    if i==5
-        xlabel(s2{i,1},'Time (min)')
-    end
-    copyobj(fig{k,2},s2{i,2})
-    if i==3
-        ylabel(s2{i,2},'Weighted Residuals')
-    end
-    if i==5
-        xlabel(s2{i,2},'Time (min)')
-    end
-end
-
-print(fullfile(datadir,sprintf('%s-MRTMfits_%s_p2of2.pdf',subjDIRS(s).name,petList(p).name)),'-dpdf','-fillpage')
-copyfile(fullfile(datadir,sprintf('%s-MRTMfits_%s_p2of2.pdf',subjDIRS(s).name,petList(p).name)),outDIR)
-
 close all
 end
 end

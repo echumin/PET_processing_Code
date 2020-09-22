@@ -37,7 +37,7 @@ addpath(genpath('/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_pr
 %addpath(genpath('/home/echumin/Documents/MATLAB/spm12'))
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
-dataDIR='/data01/W2D/datadir_3'; 
+dataDIR='/data01/W2D/datadir_4'; 
 %-------------------------------------------------------------------------%
 SkullStripMeanPET = 0; % 1 to use T1-derived brain mask
 %% WARNING %%

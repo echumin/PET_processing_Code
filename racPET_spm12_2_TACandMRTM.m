@@ -2,15 +2,15 @@
 %
 % This code follows the racPET_spm12_1_preproc code.
 %
-% -The shen286 parcellation is used for striatal ROI extraction (the Mawlawi
-% 2001 ROI).
+% -A named input parcellation from the connectivity pipeline is used to
+%  extract ROI data for input indices named with the provided labels.
 % -Cerebellum mask is generated on T1_fov_denoised with fsl and the vermis is
 % removed via a spatial transformation from an atlas.
 % -Time Activity Curves are generated for all ROI.
 % -MRTM regional binding potentials are estimated via yapmat-0.0.3a2
 %
 % Additional Notes:
-%   While not explicitly test, the code should be able to handle truncated
+%   While not explicitly tested, the code should be able to handle truncated
 %   data.
 % WARNING: If your data are truncated, double check the time-frames in your
 % TAC text files are generated correctly. The user is responsible for the
@@ -18,10 +18,11 @@
 % for accurate BP extimation. 
 %
 % Software Requirements:
-%   - afni and fsl (paths for both must be defined n your bashrc)
+%   - AFNI and FSL (paths for both must be defined in your bashrc)
 %
 % Contributors:
 % Evgeny Chumin, Indiana University School of Medicine, 2019
+%                Indiana University, Bloomington, 2020
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 %% set system specific paths
@@ -30,30 +31,45 @@ addpath(genpath('/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_pr
 %-------------------------------------------------------------------------%
 %% set path to fsl for shape models
 fslpath='/usr/bin/fsl'; %DO NOT PUT A SLASH ON THE END
+% fsldatapath= strcat(fslpath,'/data'); % default on non-Gentoo fsl
+fsldatapath='/usr/share/fsl/data'; % Gentoo fsl data location
 %-------------------------------------------------------------------------%
 %% set path to MNI cerebellar vermis template
 vermisMNI='/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_processing_Code/mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz';
 %-------------------------------------------------------------------------%
 %% set data directory path
-dataDIR='/data01/W2D/datadir_3';
+dataDIR='/data01/W2D/datadir_4';
 %-------------------------------------------------------------------------%
 %% set OUTPUT directory and file name
-outDIR='/data01/W2D/datadir_out_3';
-outFILE='mrtm_20200716_test';
+outDIR='/data01/W2D/datadir_out_4';
+outFILE='mrtm_20200922_test';
 %-------------------------------------------------------------------------%
 %% set ROI IDs and labels
-    % these labels currently correspond to the modified shen 286 region
-    % parcellation that is available in the IUSM-connectivity-pipeline.
-roiDATA= {'L_', 'R_', 'label';
-          267,   25, 'pre_dca'
-          264,   52, 'post_dca'
-          153,   128, 'pre_dpu'
-          277,   11, 'post_dpu'
-          155,   114, 'vst'};
+  % name given to parcellation in pipeline (parcs.plabel(#).name)
+  parcs_plabel_name = 'tian_subcortical_S3';
+  % example setups for roiDATA structure
+  %         BILATERAL CASE         |         LIST CASE
+  % roiDATA= {'L_', 'R_', 'label'; | roiDATA= {'ID', 'label';
+  %           267,   25, 'pre_dca' |           267, 'L_pre_dca'
+  %           264,   52, 'post_dca'|           52,  'R_post_dca'
+  %           153,   128, 'pre_dpu'|           153, 'L_pre_dpu'
+  %           277,   11, 'post_dpu'|           277, 'L_post_dpu'
+  %           155,   114, 'vst'};  |           114, 'R_vst'};
+  %
+  % these labels currently correspond to the Tian subcortical S3
+  % parcellation that is available in the IUSM-connectivity-pipeline.
+  roiDATA= {'L_', 'R_', 'label';
+            42,    15, 'put_rostv'
+            43,    16, 'put_rostd'
+            46,    19, 'caud_post'
+            47,    20, 'caud_body'
+            53,    11, 'caud_head'
+            52,    25, 'nacc'};
 %-------------------------------------------------------------------------%
 %% Raclopride half-life
 thalf=20.4;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parse out output file name
 outFILE=fullfile(outDIR,outFILE);
 if ~exist(outDIR,'dir')
@@ -67,15 +83,42 @@ else
 end
 %% Preallocate output data structures
 mrtmOUTbp={'BP'}; mrtmOUTr1={'R1'}; mrtmOUTk2={'k2'}; mrtmOUTk2a={'k2a'}; mrtmOUTk2r={'k2r'};
-for j=1:2
-    for k=2:6
-        mrtmOUTbp{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,3});
-        mrtmOUTr1{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,3});
-        mrtmOUTk2{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,3});
-        mrtmOUTk2a{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,3});
-        mrtmOUTk2r{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,3});
-    end
+% find number of roi (k) and whether they are bilateral or single list (j)
+ub = size(roiDATA,2)-1;
+lp = ub+1; % label position
+if ub > 2
+    fprintf(2,'Too many columns in roiDATA cell structure. Max 3 colums allowed.\n')
+    return
+elseif ub < 1
+    fprintf(2,'roiDATA must be a minimum of 2 columns (IDs and Labels).\n')
+    return
 end
+nr = size(roiDATA,1);
+if nr < 2
+    fprintf(2,'roiDATA must be a minumum of 2 rows (Column names and at least 1 ROI).\n')
+    return
+end
+switch ub
+    case 1 % in list case, ignore IDs column label
+        for k=2:nr % each roi is an output row
+            mrtmOUTbp{1,end+1}=roiDATA{k,lp}; %#ok<*SAGROW>
+            mrtmOUTr1{1,end+1}=roiDATA{k,lp};
+            mrtmOUTk2{1,end+1}=roiDATA{k,lp};
+            mrtmOUTk2a{1,end+1}=roiDATA{k,lp};
+            mrtmOUTk2r{1,end+1}=roiDATA{k,lp};
+        end
+    case 2
+        for j=1:ub % in bilateral case, prepend hemisphere label
+            for k=2:nr % each roi is an output row
+                mrtmOUTbp{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,lp});
+                mrtmOUTr1{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,lp});
+                mrtmOUTk2{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,lp});
+                mrtmOUTk2a{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,lp});
+                mrtmOUTk2r{1,end+1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,lp});
+            end
+        end
+end
+
 %% Loop accross subjects        
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 % subjDIRS=dir([dataDIR '/*95']); % this was to run a specific subject
@@ -94,21 +137,22 @@ for i=1:length(subjDIRS)
     if ~isempty(petList)
         t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
     else
-        warning('No PET directories found. Exiting...')
+        fprintf(2,'No PET directories found. Exiting...\n')
         return
     end
     if ~exist(fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'T1_2mm_fov_denoised.nii'),'file')
-        warning('T1_2mm_fov_denoised.nii not found. Make sure preproc was ran. Exiting...')
+        fprintf(2,'T1_2mm_fov_denoised.nii not found. Make sure preproc was ran. Exiting...\n')
         return
     end
-    parcFile=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'T1_2mm_GM_parc_shen_286.nii.gz');
+    parcName=['T1_GM_parc_' parcs_plabel_name '.nii.gz'];
+    parcFile=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,parcName);
     if ~exist(parcFile,'file')
-        parc1mm=fullfile(t1DIR,'T1_GM_parc_shen_286.nii.gz');
+        parc1mm=fullfile(t1DIR,parcName);
         if exist(parc1mm,'file')
             sentence=sprintf('flirt -in %s -out %s -interp nearestneighbour -applyisoxfm 2 -ref %s',parc1mm,parcFile,parc1mm);
             [~,result]=system(sentence);disp(result)
         else
-            warning('T1_GM_parc_shen_286.nii.gz not found. Make sure T1_B was ran. Exiting...')
+            fprintf(2,'%s not found. Make sure T1_B was ran. Exiting...\n',parcName)
             return
         end
     end
@@ -120,7 +164,7 @@ for p=1:length(petList) % loop over PET scans
     if ~isempty(dir(fullfile(petDIR,'Nii-*FBP_RACd*')))
         niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
     else
-        warning('nii_dymanic_preproc not found. Make sure preproc was ran. Exiting...')
+        fprintf(2,'nii_dymanic_preproc not found. Make sure preproc was ran. Exiting...\n')
         return
     end
     %create a 4D pet dataset
@@ -152,25 +196,31 @@ for p=1:length(petList) % loop over PET scans
         end
     end
         
-     if exist(parcFile,'file') && exist(niiDIR,'dir')
-         roiDIR=fullfile(petDIR,'roi_TAC_mrtm');
+    if exist(parcFile,'file') && exist(niiDIR,'dir')
+        roiDIR=fullfile(petDIR,'roi_TAC_mrtm');
         if ~exist(roiDIR,'dir')
             mkdir(roiDIR)
         end
         % read in PET data
         fprintf('Working on subject: %s\n',subjDIRS(i).name)
-       volPET = MRIread(pet4D);  volPET=volPET.vol;
-       [sizeX,sizeY,sizeZ,numTimePoints]=size(volPET);
-       % Looping across ROI
-        for j=1:2
-            for k=2:6
-                fprintf('Starting processing for %s%s; shen ID: %d\n',roiDATA{1,j},roiDATA{k,3},roiDATA{k,j})
+        volPET = MRIread(pet4D);  volPET=volPET.vol;
+        [sizeX,sizeY,sizeZ,numTimePoints]=size(volPET);
+        % Looping across ROI
+        for j=1:ub
+            for k=2:nr
+                switch ub
+                    case 1 % list case
+                        rl = roiDATA{k,lp}; % roi label
+                    case 2 % bilateral case
+                        rl = [roiDATA{1,j} roiDATA{k,lp}];
+                end
+                fprintf('Starting processing for %s; Parcellation ID: %d\n',rl,roiDATA{k,j})
                 disp('Extracting ROI from GM_parc')
                 % extract ROI from parcellation
-                 roiOUT=fullfile(roiDIR,sprintf('%s%s.nii.gz',roiDATA{1,j},roiDATA{k,3}));
+                roiOUT=fullfile(roiDIR,[rl '.nii.gz']);
                 sentence=sprintf('fslmaths %s -thr %d -uthr %d %s',parcFile,roiDATA{k,j},roiDATA{k,j},roiOUT);
                 [~,result]=system(sentence);disp(result)
-                fprintf('Extracting TAC for %s%s\n\n',roiDATA{1,j},roiDATA{k,3})
+                fprintf('Extracting TAC for %s\n\n',rl)
                 volROI = MRIread(roiOUT); volROI=volROI.vol;
                 % for each PET frame, get mean activity from mask
                 for timePoint=1:numTimePoints
@@ -180,8 +230,8 @@ for p=1:length(petList) % loop over PET scans
                 end
                 % write out time activity text file
                 tac_txt=horzcat(TimeFrames,TAC);
-                dlmwrite(fullfile(roiDIR,sprintf('%s%s_tac.txt',roiDATA{1,j},roiDATA{k,3})),tac_txt,'delimiter','\t','precision','%.6f')   
-                clear TAC tac_txt 
+                dlmwrite(fullfile(roiDIR,sprintf('%s_tac.txt',rl)),tac_txt,'delimiter','\t','precision','%.6f')
+                clear TAC tac_txt rl
             end
         end
         
@@ -204,8 +254,8 @@ for p=1:length(petList) % loop over PET scans
             elseif c==2
                 cereb=fullfile(crblmDIR,'L_cerebellum'); side='L';
             end
-            [~,result]=system(sprintf('run_first -i %s -t %s -o %s -n 40 -m %s/data/first/models_336_bin/intref_puta/%s_Cereb.bmv -intref %s/data/first/models_336_bin/05mm/%s_Puta_05mm.bmv',...
-                T1,mat,cereb,fslpath,side,fslpath,side));disp(result)
+            [~,result]=system(sprintf('run_first -i %s -t %s -o %s -n 40 -m %s/first/models_336_bin/intref_puta/%s_Cereb.bmv -intref %s/first/models_336_bin/05mm/%s_Puta_05mm.bmv',...
+                T1,mat,cereb,fsldatapath,side,fsldatapath,side));disp(result)
             [~,result]=system(sprintf('first_boundary_corr -s %s.nii.gz -i %s -b fast -o %s_corr',cereb,T1,cereb));disp(result)
             [~,result]=system(sprintf('fslmaths %s_corr.nii.gz -bin %s_corr_bin',cereb,cereb));disp(result)
         end
@@ -262,13 +312,18 @@ for p=1:length(petList) % loop over PET scans
             mrtmOUTk2r{end+1,1}=subjDIRS(i).name;
             % Looping over the ROI
             counter=1;
-            for j=1:2
-                for k=2:6
+            for j=1:ub
+                for k=2:nr
+                    switch ub
+                        case 1 % list case
+                            rl = roiDATA{k,lp}; % roi label
+                        case 2 % bilateral case
+                            rl = [roiDATA{1,j} roiDATA{k,lp}];
+                    end
                     counter=counter+1;
-                    roiOUT=fullfile(roiDIR,sprintf('%s%s.nii.gz',roiDATA{1,j},roiDATA{k,3}));
-                    subjMRTMout{end+1,1}=sprintf('%s%s',roiDATA{1,j},roiDATA{k,3});
-                    fprintf('Running MRTM for %s\n',roiOUT)
-                    Ct=fullfile(roiDIR,sprintf('%s%s_tac.txt',roiDATA{1,j},roiDATA{k,3}));
+                    subjMRTMout{end+1,1}=sprintf('%s',rl);
+                    fprintf('Running MRTM for %s\n',rl)
+                    Ct=fullfile(roiDIR,sprintf('%s_tac.txt',rl));
                     Cr=fullfile(roiDIR,'cerebellum_tac.txt');
                     [BP, R1, k2, k2a, k2r] = mrtm (Ct, Cr, roiDIR, thalf, 'conventional');
                     subjMRTMout{end,2}=BP;  mrtmOUTbp{end,counter}=BP;
@@ -295,8 +350,7 @@ for p=1:length(petList) % loop over PET scans
     else
         disp(parcFile)
         disp(niiDIR)
-        warning('GM parcellation image above not found or/n PET nii dir not found.')
-
+        fprintf(2,'GM parcellation image above not found or/n PET nii dir not found.')
     end
 end
 end
