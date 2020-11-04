@@ -19,7 +19,7 @@
 %-------------------------------------------------------------------------%
     % set system specific paths
 addpath(genpath('/datay2/matlabscripts/toolbox_matlab_nifti'))
-addpath(genpath('/datay2/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
+addpath(genpath('/datay2/PET_processing_Code'))
 addpath(genpath('/usr/local/spm12'))
 %-------------------------------------------------------------------------%
     % set data directory paths
