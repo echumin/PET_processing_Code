@@ -1,7 +1,7 @@
 function masked_means = f_maskPET(means)
 % Use T1_fov_denoised and its coresponding brain mask to brain mask the PET
 % data
-
+curdir = pwd;
 for m=1:2
     tmp = extractAfter(means{m},'nii_dynamic_preproc');
     PETm = extractBefore(means{m},tmp); clear tmp
@@ -53,5 +53,7 @@ for m=1:2
     matlabbatch{1}.spm.util.imcalc.options.dtype = 4;
     spm_jobman('run',matlabbatch);
     clear matlabbatch
+    ps_rename('spm_coregT1_maskPET.ps')
 end
+cd(curdir)
 end

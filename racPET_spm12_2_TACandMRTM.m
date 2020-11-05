@@ -26,8 +26,8 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 %% set system specific paths
-addpath(genpath('/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_processing_Code/toolbox_matlab_nifti'))
-addpath(genpath('/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
+PETcodeDIR = '/projects/pet_processing/Jenya_temp/PET_processing_Code';
+addpath(genpath(PETcodeDIR))
 %-------------------------------------------------------------------------%
 %% set path to fsl for shape models
 fslpath='/usr/bin/fsl'; %DO NOT PUT A SLASH ON THE END
@@ -35,14 +35,14 @@ fslpath='/usr/bin/fsl'; %DO NOT PUT A SLASH ON THE END
 fsldatapath='/usr/share/fsl/data'; % Gentoo fsl data location
 %-------------------------------------------------------------------------%
 %% set path to MNI cerebellar vermis template
-vermisMNI='/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_processing_Code/mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz';
+vermisMNI=fullfile(PETcodeDIR,'mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz');
 %-------------------------------------------------------------------------%
 %% set data directory path
-dataDIR='/data01/W2D/datadir_4';
+dataDIR='/projects/pet_processing/Jenya_temp/datadir';
 %-------------------------------------------------------------------------%
 %% set OUTPUT directory and file name
-outDIR='/data01/W2D/datadir_out_4';
-outFILE='mrtm_20200922_test';
+outDIR='/projects/pet_processing/Jenya_temp/datadir_out';
+outFILE='mrtm_W2D0095_test';
 %-------------------------------------------------------------------------%
 %% set ROI IDs and labels
   % name given to parcellation in pipeline (parcs.plabel(#).name)

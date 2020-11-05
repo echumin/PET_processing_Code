@@ -33,11 +33,11 @@
 %-------------------------------------------------------------------------%
 %% Set path to your SPM directory.
 addpath(genpath('/usr/local/spm12')) % set path to spm12
-addpath(genpath('/usr/local/IUSM-connectivity-pipeline/secondary_analyses/PET_processing_Code'))
+addpath(genpath('/projects/pet_processing/Jenya_temp/PET_processing_Code'))
 %addpath(genpath('/home/echumin/Documents/MATLAB/spm12'))
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
-dataDIR='/data01/W2D/datadir_4'; 
+dataDIR='/projects/pet_processing/Jenya_temp/datadir'; 
 %-------------------------------------------------------------------------%
 SkullStripMeanPET = 0; % 1 to use T1-derived brain mask
 %% WARNING %%
