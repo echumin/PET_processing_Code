@@ -1,8 +1,8 @@
-function masked_means = f_maskPET(means)
+function masked_means = f_maskPET(means,maskframes)
 % Use T1_fov_denoised and its coresponding brain mask to brain mask the PET
-% data
+% data.
 curdir = pwd;
-for m=1:2
+for m=1:length(means)
     tmp = extractAfter(means{m},'nii_dynamic_preproc');
     PETm = extractBefore(means{m},tmp); clear tmp
     T1 = [PETm(1:end-24) 'T1'];
@@ -53,6 +53,26 @@ for m=1:2
     matlabbatch{1}.spm.util.imcalc.options.dtype = 4;
     spm_jobman('run',matlabbatch);
     clear matlabbatch
+    
+    if maskframes == 1
+        fprintf('Masking individual rPET%d frames\n',m)
+        frames=dir(fullfile(PETm,'rFBP*.nii'));
+        matlabbatch{1}.spm.util.imcalc.outdir{1,1} = PETm;
+        matlabbatch{1}.spm.util.imcalc.expression = 'i1.*(i2>0)';
+        matlabbatch{1}.spm.util.imcalc.var = struct('name', {}, 'value', {});
+        matlabbatch{1}.spm.util.imcalc.options.dmtx = 0;
+        matlabbatch{1}.spm.util.imcalc.options.mask = -1;
+        matlabbatch{1}.spm.util.imcalc.options.interp = 0;
+        matlabbatch{1}.spm.util.imcalc.options.dtype = 4;
+        for f=1:length(frames)
+            matlabbatch{1}.spm.util.imcalc.input{1,1} = [PETm '/' frames(f).name ',1'];
+            matlabbatch{1}.spm.util.imcalc.input{2,1} = [maskDIR '/r' Mask1(2:end-3) ',1'];
+            matlabbatch{1}.spm.util.imcalc.output = ['b' frames(f).name ',1'];
+            spm_jobman('run',matlabbatch);
+            clear matlabbatch{1}.spm.util.imcalc.input
+        end
+        clear matlabbatch  
+    end
     ps_rename('spm_coregT1_maskPET.ps')
 end
 cd(curdir)

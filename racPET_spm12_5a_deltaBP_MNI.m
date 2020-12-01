@@ -13,10 +13,18 @@
 addpath(genpath('/usr/local/spm12')) % set path to spm12
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
-dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
-outDIR='/datay2/chumin-F31/mrtm2_dBP_images';
+dataDIR='/projects/pet_processing/datadir';
+outDIR='/projects/pet_processing/mrtm2_dBP_images';
+%% Set location of the scan order file (if empty as is order is assumed).
+% This should be a 3 column tab delimited text file with subjectID, index 
+%    of 1st scan, and index of 2nd scan.
+orderTXT='/projects/pet_processing/order_list_test.txt';
+%-------------------------------------------------------------------------%
 if ~exist(outDIR,'dir')
     mkdir(outDIR)
+end
+if exist(orderTXT,'file')
+    ord=readtable(orderTXT);
 end
 %-------------------------------------------------------------------------%
 %%
@@ -34,8 +42,15 @@ for i=1:length(subjDIRS)
 %% 
 if length(petList) > 1
     t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
-    pet1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name);
-    pet2DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(2).name);
+    if exist('ord','var')
+        idx=find(strcmp(subjDIRS(i).name,ord.Var1));
+        pet1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(ord.Var2(idx)).name);
+        pet2DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(ord.Var3(idx)).name);
+    else   
+        pet1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name);
+        pet2DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(2).name);
+    end
+    
     blPET=dir(fullfile(pet1DIR,'mrtm2_mni_images/*_MRTM2_BP.nii'));
     chPET=dir(fullfile(pet2DIR,'mrtm2_mni_images/*_MRTM2_BP.nii'));
     

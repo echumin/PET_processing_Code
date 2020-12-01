@@ -4,8 +4,8 @@ ps = ['spm_' datestr(datetime('now'),'yyyymmmdd') '.ps'];
 ps_root = extractBefore(ps_new,'.ps');
 if exist(ps,'file')
     if exist(ps_new,'file')
-        ps_num = dir([ps_root '*']);
-        ps_new = [ps_root '_run' num2str(ps_num) '.ps'];
+        ps_num = length(dir([ps_root '*']));
+        ps_new = [ps_root '_run' num2str(ps_num+1) '.ps'];
     end
     movefile(ps,ps_new)
 else

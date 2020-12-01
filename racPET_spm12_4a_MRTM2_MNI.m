@@ -19,14 +19,13 @@
 
 %-------------------------------------------------------------------------%
     % set system specific paths
-addpath(genpath('/datay2/PET_processing_Code/matlabscripts/toolbox_matlab_nifti'))
-addpath(genpath('/datay2/PET_processing_Code'))
+addpath(genpath('/projects/pet_processing/PET_processing_Code'))
 spm12_path='/usr/local/spm12';
 addpath(genpath(spm12_path))
 %-------------------------------------------------------------------------%
     % set data directory paths
-dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
-outDIR='/datay2/chumin-F31/mrtm2_MNI_images';
+dataDIR='/projects/pet_processing/datadir';
+outDIR='/projects/pet_processing/mrtm2_MNI_images';
 %-------------------------------------------------------------------------%
 % Raclopride half-life
 thalf=20.4;
@@ -53,16 +52,16 @@ for i=1:length(subjDIRS)
     if length(petList) > 1
         pet2DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(2).name);
         nii2DIR=fullfile(pet2DIR,'nii_dynamic_preproc');
-        if ~isempty(dir(fullfile(nii2DIR,'r2mm_FBP_RACd*.nii')))
-            frames=dir(fullfile(nii2DIR,'r2mm_FBP_RACd*.nii'));
+        if ~isempty(dir(fullfile(nii2DIR,'r2mm_*rFBP_RACd*.nii')))
+            frames=dir(fullfile(nii2DIR,'r2mm_*rFBP_RACd*.nii'));
             for j=1:length(frames)
                 pet2frames{j,1} = sprintf('%s/%s,1',nii2DIR,frames(j).name);
             end
             clear frames
         end
     end
-    if ~isempty(dir(fullfile(nii1DIR,'r2mm_FBP_RACd*.nii')))
-            frames=dir(fullfile(nii1DIR,'r2mm_FBP_RACd*.nii'));
+    if ~isempty(dir(fullfile(nii1DIR,'r2mm_*rFBP_RACd*.nii')))
+            frames=dir(fullfile(nii1DIR,'r2mm_*rFBP_RACd*.nii'));
             for j=1:length(frames)
                 pet1frames{j,1} = sprintf('%s/%s,1',nii1DIR,frames(j).name);
             end
@@ -143,14 +142,14 @@ for i=1:length(subjDIRS)
         for p=1:length(petList)
             petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(p).name);
             niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
-            frames=dir(fullfile(niiDIR,'r2mm_FBP_RACd*.nii'));
+            frames=dir(fullfile(niiDIR,'r2mm_*rFBP_RACd*.nii'));
             normDynamicIN=fullfile(niiDIR,['w' frames(1).name]);
         cerebellum_tac=fullfile(petDIR,'roi_TAC_mrtm/cerebellum_tac.txt');
         outSubject=fullfile(petDIR,'mrtm2_mni_images');
         if ~exist(outSubject,'dir')
             mkdir(outSubject)
         end
-
+        close all
         %usage
         [BP, k2r, R1, k2, k2a] = mrtm2 (normDynamicIN, 'dec', cerebellum_tac, outSubject, thalf, 'unweighted');
 

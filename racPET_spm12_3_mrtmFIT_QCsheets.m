@@ -9,8 +9,8 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 % set data directory paths
-dataDIR='/data01/W2D/datadir_4';
-outDIR='/data01/W2D/datadir_out_4';
+dataDIR='/projects/pet_processing/datadir';
+outDIR='/projects/pet_processing/datadir_out';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if ~exist(outDIR,'dir')

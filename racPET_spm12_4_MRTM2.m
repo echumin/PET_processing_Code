@@ -18,12 +18,11 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
     % set system specific paths
-addpath(genpath('/datay2/matlabscripts/toolbox_matlab_nifti'))
-addpath(genpath('/datay2/PET_processing_Code'))
-addpath(genpath('/usr/local/spm12'))
+addpath(genpath('/usr/local/spm12')) % set path to spm12
+addpath(genpath('/projects/pet_processing/PET_processing_Code'))
 %-------------------------------------------------------------------------%
     % set data directory paths
-dataDIR='/datay2/chumin-F31/data/CNT/SKYRA';
+dataDIR='/projects/pet_processing/datadir';
 %-------------------------------------------------------------------------%
 % Raclopride half-life
 thalf=20.4;
@@ -47,8 +46,8 @@ for p=1:length(petList) % loop over PET scans
     t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
     niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
     cd(petDIR)
-    if ~isempty(dir(fullfile(niiDIR,'r2mm_FBP_RACd*.nii')))
-        frames=dir(fullfile(niiDIR,'r2mm_FBP_RACd*.nii'));
+    if ~isempty(dir(fullfile(niiDIR,'r2mm_*rFBP_RACd*.nii')))
+        frames=dir(fullfile(niiDIR,'r2mm_*rFBP_RACd*.nii'));
     else
         warning('No T1 coregistered r2mm_ images found. Exiting...')
         return

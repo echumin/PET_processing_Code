@@ -1,16 +1,16 @@
 % racPET_spm12_1_preproc.m
-%
+% 
 % Raclopride PET image pre-processing batch script.
-%
+% 
 % Data should follow the IUSM-connectvitity-pipeline layout, e.g.
 %   a PET directory should be created in the subject directory that
 %   contains a link (e.g. datadir) to the dicom PET data
 %   This code expects that mCT2nii has been ran on the data, which means
 %   Nii-FBP_RACd (dynamic data scans) exists and contains nifti PET frames.
-%
+% 
 % T1 A and B preprocessing through the IUSM-connectivity-pipeline should be
 % completed prior to starting these scripts.
-%
+% 
 % For single scan design there should only be a single 'PET' directory.
 % For 2 scan designs, where scan2 needs to be aligned to scan1, there
 % should be a 'PET1' and 'PET2' directories where:
@@ -18,41 +18,55 @@
 %          registered.
 %   PET2 - a challenge scan / second scan / the one that is moved to match
 %          PET1
-%
-%Contributons:
+% 
+% Contributons:
 %  Evgeny Chumin, Indiana University School of Medicine, 2019
 %                 Indiana University, Bloomington, 2020 
 %  Mario Dzemidzic, Indiana University School of Medicine, 2019
-%
+% 
 % Additional Notes:
 %   This code was written with spm12 (matlab19b) and fsl5.0.10 
 %   (eddy patched) later tested with fsl6.0.1.
 %   Required MRIread and MRIwrite functions available from the
 %   toolbox_matlab_nifti.
-%
+% 
 %-------------------------------------------------------------------------%
-%% Set path to your SPM directory.
+%% Set path to your SPM and PET_Processing_Code directories.
 addpath(genpath('/usr/local/spm12')) % set path to spm12
-addpath(genpath('/projects/pet_processing/Jenya_temp/PET_processing_Code'))
-%addpath(genpath('/home/echumin/Documents/MATLAB/spm12'))
+addpath(genpath('/projects/pet_processing/PET_processing_Code'))
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
-dataDIR='/projects/pet_processing/Jenya_temp/datadir'; 
+dataDIR='/projects/pet_processing/datadir'; 
 %-------------------------------------------------------------------------%
-SkullStripMeanPET = 0; % 1 to use T1-derived brain mask
-%% WARNING %%
-% be very careful when using this parameter to edit field of view as you
-% can crop the cerebellum if you are not carefull. This is mean to be used
-% on specific subject retuns where there is high noise in the inferior of
-% the image
-Edit_inferiorZslices = 0; % dangerous flag
+%% Preprocessing is divided into two sections: preprocA and preprocB.
+%   - Set the flags to 1 to perform their respective processing.
+%
+%   - preprocA - generate mean PET, coregistration to mean, and final 
+%                realignment to mean.
+%   - preprocB - brain mask PET (optional), coregister PET2 to PET1, 
+%                coregister all to T1.
+preprocA = 1;
+preprocB = 1;
+%-------------------------------------------------------------------------%
+%% Brain mask options. 
+% FOR REGISTRATION PURPOCES ONLY
+    SkullStripMeanPET = 1; % 1 to use T1-derived brain mask, 0 for no masking
+% APPLY MASKING TO ALL PET DATA
+    % Works only if the above option to mask mean PET is on.
+    maskALLpet = 1; % 1 to apply brain mask to all frames, 0 for no masking
+%-------------------------------------------------------------------------%
+%% Field-of-view editing options.
+    %--% WARNING %--%
+% Be very careful when using this parameter to edit field of view as you
+% can crop the cerebellum if you are not carefull. This is meant to be used
+% when rerunning specific subjects, where there is high noise in the 
+% inferior of the image that is believed to be affecting registration.
+    Edit_inferiorZslices = 0; % dangerous flag
 % to remove inferior slices enter "-N" (+N to add)
-
-
+%-------------------------------------------------------------------------%
 %%
 % Looping across subjects
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
-%subjDIRS=dir([dataDIR '/*95']); this was to run a specific subject
 for i=1:length(subjDIRS)
     % set PET subdirectory names
     dircont=dir(fullfile(subjDIRS(i).folder,subjDIRS(i).name)); dircont(1:2)=[];
@@ -66,15 +80,18 @@ for i=1:length(subjDIRS)
 if ~isempty(petList)
     t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
 if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
+    fprintf('Processing subject: %s\n',subjDIRS(i).name)
+if preprocA == 1
     for p=1:length(petList) % loop over PET scans
         petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(p).name);
         % if dynamic data exists
         if ~isempty(dir(fullfile(petDIR,'Nii-*FBP_RACd*')))
+            fprintf('%s: Processing %s\n',subjDIRS(i).name,petList(p).name)
             niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
             if ~exist(niiDIR,'dir')
                 mkdir(niiDIR)
             end
-           % Create an early mean image from frames 2-15 (RACLOPRIDE DATA SPECIFIC)
+%%%%%%% Create an early mean image from frames 2-15 (RACLOPRIDE DATA SPECIFIC)
            copyfile(fullfile(petDIR,'Nii-*FBP_RACd*/*.nii'), niiDIR) 
            frames=dir(fullfile(niiDIR,'FBP*.nii'));
            if Edit_inferiorZslices ~= 0
@@ -128,7 +145,9 @@ if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
         matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.mask = 0;
         matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.prefix = 'r';
         for k=1:length(frames)
-            %if k==2
+            % commented section is meant to apply registration parameters
+            % from frame 2 to frame 1
+            %if k==2 
             %    matlabbatch{1}.spm.spatial.coreg.estwrite.other = {sprintf('%s/%s,1',niiDIR,frames(1).name)};
             %else
                 matlabbatch{1}.spm.spatial.coreg.estwrite.other = {''};
@@ -160,6 +179,7 @@ if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
         clear frames
         ps_rename('spm_finalRealign.ps')
     end
+end
 else
     warning('No T1_fov_denoised found. Run IUSM-connectivity-pipeline T1_A and B.')
     return
@@ -169,36 +189,47 @@ else
     return
 end   
 %% Coregister the scan2 mean PET images and frames to scan1
+if preprocB == 1
 cd(fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name))
 if length(petList)>1
+    nii1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'nii_dynamic_preproc');
+    nii2DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(2).name,'nii_dynamic_preproc');
+    if ~exist('means','var')
+        mean=dir(fullfile(nii1DIR,'mean*.nii'));
+        means{1,1}=[fullfile(mean(1).folder,mean(1).name) ',1'];
+        mean=dir(fullfile(nii2DIR,'mean*.nii'));
+        means{2,1}=[fullfile(mean(1).folder,mean(1).name) ',1'];
+        clear mean
+    end
+    disp('Coregistering PET2 to PET1')
     if SkullStripMeanPET == 1
         disp('Mean PET images will be skull stripped prior to coregistration')
-        spm_figure('GetWin','Graphics');
-        [masked_means] = f_maskPET(means);
-        matlabbatch{1}.spm.spatial.coreg.estimate.ref{1,1} = masked_means{1,1};
-        matlabbatch{1}.spm.spatial.coreg.estimate.source{1,1} = masked_means{2,1};
+        [masked_means] = f_maskPET(means,maskALLpet);
+        if maskALLpet == 1
+            frames=dir(fullfile(nii2DIR,'brFBP*.nii'));
+        else
+            frames=dir(fullfile(nii2DIR,'rFBP*.nii'));
+        end
+        for j=1:length(frames)
+            other2{j,1}=[nii2DIR '/' frames(j).name ',1'];
+        end
+        clear frames
+        other2{end+1,1} = means{2,1};
+        f_spm_coreg(masked_means{1,1},masked_means{2,1},other2)
     else
-        matlabbatch{1}.spm.spatial.coreg.estimate.ref{1,1} = means{1,1};
-        matlabbatch{1}.spm.spatial.coreg.estimate.source{1,1} = means{2,1};
-    end
-    nii2DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(2).name,'nii_dynamic_preproc');
-    frames=dir(fullfile(nii2DIR,'FBP*.nii'));
-    for j=1:length(frames)
-        other2{j,1}=[nii2DIR '/' frames(j).name ',1'];
-    end
-    clear frames
-    if SkullStripMeanPET == 1
-        other2{end+1,1}=means{2,1};
-    end
-    matlabbatch{1}.spm.spatial.coreg.estimate.other = other2;
-    matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
-    matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
-    matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
-    matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
-    disp('Realigning PET2 to PET1')
-    spm_jobman('run',matlabbatch);
-    clear matlabbatch
+        frames=dir(fullfile(nii2DIR,'rFBP*.nii'));
+        for j=1:length(frames)
+            other2{j,1}=[nii2DIR '/' frames(j).name ',1'];
+        end
+        clear frames
+        f_spm_coreg(means{1,1},means{2,1},other2)
+    end    
     ps_rename('spm_coregPET2toPET1.ps')
+else
+    if SkullStripMeanPET == 1
+        disp('Mean PET images will be skull stripped prior to coregistration')
+        [masked_means] = f_maskPET(means,maskALLpet);
+    end
 end
 %% Coregister all scans to T1_fov_denoised
     T1in=fullfile(t1DIR,'T1_fov_denoised.nii');
@@ -217,18 +248,26 @@ end
     spm_figure('GetWin','Graphics');
     matlabbatch{1}.spm.spatial.coreg.estwrite.ref = {sprintf('%s.nii,1',T1out)};
     matlabbatch{1}.spm.spatial.coreg.estwrite.source{1,1} = means{1,1};
-    nii1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'nii_dynamic_preproc');
-    frames=dir(fullfile(nii1DIR,'FBP*.nii'));
+    
+    if maskALLpet==1
+        frames=dir(fullfile(nii1DIR,'brFBP*.nii'));
+    else
+        frames=dir(fullfile(nii1DIR,'rFBP*.nii'));
+    end
     for j=1:length(frames)
         other1{j,1}=[nii1DIR '/' frames(j).name ',1'];
     end
-    clear frames
+    clear frames 
     if length(petList)>1 && SkullStripMeanPET == 1
-        matlabbatch{1}.spm.spatial.coreg.estwrite.other = vertcat(other1,other2);
+        matlabbatch{1}.spm.spatial.coreg.estwrite.other = vertcat(other1,masked_means,other2);
     elseif length(petList)>1 && SkullStripMeanPET ~= 1
         matlabbatch{1}.spm.spatial.coreg.estwrite.other = vertcat(other1,means{2:end,1},other2);
     else
-        matlabbatch{1}.spm.spatial.coreg.estwrite.other = other1; 
+        if maskALLpet==1
+            matlabbatch{1}.spm.spatial.coreg.estwrite.other = vertcat(other1,masked_means); 
+        else
+            matlabbatch{1}.spm.spatial.coreg.estwrite.other = other1; 
+        end
     end   
     matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.cost_fun = 'nmi';
     matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.sep = [4 2];
@@ -241,4 +280,5 @@ end
     spm_jobman('run',matlabbatch);
     clear matlabbatch
     ps_rename('spm_coregAll2T1.ps')
+end
 end

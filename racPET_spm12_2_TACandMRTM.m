@@ -15,7 +15,7 @@
 % WARNING: If your data are truncated, double check the time-frames in your
 % TAC text files are generated correctly. The user is responsible for the
 % accuracy of time-frame data and making sure sufficient data is available
-% for accurate BP extimation. 
+% for accurate BP estimation. 
 %
 % Software Requirements:
 %   - AFNI and FSL (paths for both must be defined in your bashrc)
@@ -26,27 +26,28 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 %% set system specific paths
-PETcodeDIR = '/projects/pet_processing/Jenya_temp/PET_processing_Code';
+PETcodeDIR = '/projects/pet_processing/PET_processing_Code';
 addpath(genpath(PETcodeDIR))
 %-------------------------------------------------------------------------%
 %% set path to fsl for shape models
-fslpath='/usr/bin/fsl'; %DO NOT PUT A SLASH ON THE END
-% fsldatapath= strcat(fslpath,'/data'); % default on non-Gentoo fsl
-fsldatapath='/usr/share/fsl/data'; % Gentoo fsl data location
+fslpath='/usr/local/fsl'; %DO NOT PUT A SLASH ON THE END
+fsldatapath= strcat(fslpath,'/data'); % default on non-Gentoo fsl
+%fsldatapath='/usr/share/fsl/data'; % Gentoo fsl data location
 %-------------------------------------------------------------------------%
 %% set path to MNI cerebellar vermis template
 vermisMNI=fullfile(PETcodeDIR,'mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz');
 %-------------------------------------------------------------------------%
 %% set data directory path
-dataDIR='/projects/pet_processing/Jenya_temp/datadir';
+dataDIR='/projects/pet_processing/datadir';
 %-------------------------------------------------------------------------%
 %% set OUTPUT directory and file name
-outDIR='/projects/pet_processing/Jenya_temp/datadir_out';
-outFILE='mrtm_W2D0095_test';
+outDIR='/projects/pet_processing/datadir_out';
+outFILE='mrtm_test1';
 %-------------------------------------------------------------------------%
 %% set ROI IDs and labels
   % name given to parcellation in pipeline (parcs.plabel(#).name)
-  parcs_plabel_name = 'tian_subcortical_S3';
+  % parcs_plabel_name = 'tian_subcortical_S3';
+  parcs_plabel_name = 'shen_286';
   % example setups for roiDATA structure
   %         BILATERAL CASE         |         LIST CASE
   % roiDATA= {'L_', 'R_', 'label'; | roiDATA= {'ID', 'label';
@@ -58,13 +59,21 @@ outFILE='mrtm_W2D0095_test';
   %
   % these labels currently correspond to the Tian subcortical S3
   % parcellation that is available in the IUSM-connectivity-pipeline.
+%   roiDATA= {'L_', 'R_', 'label';
+%             42,    15, 'put_rostv'
+%             43,    16, 'put_rostd'
+%             46,    19, 'caud_post'
+%             47,    20, 'caud_body'
+%             53,    11, 'caud_head'
+%             52,    25, 'nacc'};
+
+% Martinez ROI within Shen 286
   roiDATA= {'L_', 'R_', 'label';
-            42,    15, 'put_rostv'
-            43,    16, 'put_rostd'
-            46,    19, 'caud_post'
-            47,    20, 'caud_body'
-            53,    11, 'caud_head'
-            52,    25, 'nacc'};
+            267,   25, 'pre_dca'
+            264,   52, 'post_dca'
+            153,   128, 'pre_dpu'
+            277,   11, 'post_dpu'
+            155,   114, 'vst'}; 
 %-------------------------------------------------------------------------%
 %% Raclopride half-life
 thalf=20.4;
@@ -121,7 +130,6 @@ end
 
 %% Loop accross subjects        
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
-% subjDIRS=dir([dataDIR '/*95']); % this was to run a specific subject
 for i=1:length(subjDIRS)
     disp('%---------------------------------%')
     fprintf('Setting paths to %s data .....\n',subjDIRS(i).name)
@@ -161,7 +169,7 @@ for p=1:length(petList) % loop over PET scans
     petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(p).name);
     disp(petList(p).name)
     % if dynamic data exists
-    if ~isempty(dir(fullfile(petDIR,'Nii-*FBP_RACd*')))
+    if ~isempty(dir(fullfile(petDIR,'nii_dynamic_*')))
         niiDIR=fullfile(petDIR,'nii_dynamic_preproc');
     else
         fprintf(2,'nii_dymanic_preproc not found. Make sure preproc was ran. Exiting...\n')
@@ -172,7 +180,7 @@ for p=1:length(petList) % loop over PET scans
     fprintf('Merging %s data into a 4D volume ....\n',subjDIRS(i).name)
     disp('%---------------------------------%')
     pet4D=fullfile(petDIR,'r2mm_T1_FBP_RACd.nii.gz');
-    sentence=sprintf('fslmerge -t %s %s',pet4D,fullfile(niiDIR,'r2mm_FBP_RACd*.nii'));
+    sentence=sprintf('fslmerge -t %s %s',pet4D,fullfile(niiDIR,'r2mm_*rFBP_RACd*.nii'));
     [~,result]=system(sentence); disp(result)
     frames=dir(fullfile(niiDIR,'FBP_RACd*.nii'));
     numTimePoints=length(frames);
