@@ -2,7 +2,7 @@ function spm12_cine_loop(path2data,fileroot)
 
 % If spm12 is not in matlab path prior to execution, add it here.
 addpath(genpath('/usr/local/spm12/'))
-
+spm_figure('GetWin','Graphics');
 fileList=dir(path2data);
 fileList(1:2)=[];
  

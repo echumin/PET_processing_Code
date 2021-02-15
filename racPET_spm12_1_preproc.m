@@ -66,7 +66,8 @@ preprocB = 1;
 %-------------------------------------------------------------------------%
 %%
 % Looping across subjects
-subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+%subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+subjDIRS=dir([dataDIR '/*95']);
 for i=1:length(subjDIRS)
     % set PET subdirectory names
     dircont=dir(fullfile(subjDIRS(i).folder,subjDIRS(i).name)); dircont(1:2)=[];

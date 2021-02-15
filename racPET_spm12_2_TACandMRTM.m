@@ -129,7 +129,9 @@ switch ub
 end
 
 %% Loop accross subjects        
-subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+%subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+subjDIRS=dir([dataDIR '/*95']);
+
 for i=1:length(subjDIRS)
     disp('%---------------------------------%')
     fprintf('Setting paths to %s data .....\n',subjDIRS(i).name)
