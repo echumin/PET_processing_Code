@@ -1,8 +1,8 @@
-%racPET_spm12_4_MRTM2.m
+% racPET_spm12_4_MRTM2.m
 %
 % Creates parametric BPnd images for Raclopride PET data.
 %
-% This code follows racPET_TACandMRTM code and assumes you have done the
+% This code follows racPET_spm12_2_TACandMRTM code and assumes you have done the
 % necessary quality assurance on the regional time activity curve data.
 
 % Additional Notes:
@@ -11,26 +11,32 @@
 % WARNING: If your data are truncated, double check the time-frames in your
 % TAC text files are generated correctly. The user is responsible for the
 % accuracy of time-frame data and making sure sufficient data is available
-% for accurate BP extimation. 
+% for accurate BP estimation. 
 %
 % Contributors:
 % Evgeny Chumin, Indiana University School of Medicine, 2019
+%                Indiana University, Bloomington, 2020
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
-    % set system specific paths
+%% set system specific paths
 addpath(genpath('/usr/local/spm12')) % set path to spm12
 addpath(genpath('/projects/pet_processing/PET_processing_Code'))
 %-------------------------------------------------------------------------%
-    % set data directory paths
+%% set data directory paths
 dataDIR='/projects/pet_processing/datadir';
 %-------------------------------------------------------------------------%
-% Raclopride half-life
+%% Subject list selection.
+% Run all subjects:
+    %subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+% Run a single or set of subjects:
+    subjDIRS=dir([dataDIR '/*01']);
+%-------------------------------------------------------------------------%
+%% Raclopride half-life
 thalf=20.4;
-
+%-------------------------------------------------------------------------%   
+%% End of user input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Loop accross subjects   
-%subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
-subjDIRS=dir([dataDIR '/*95']);% this was to run a specific subject
-
 for i=1:length(subjDIRS)
     % set PET subdirectory names
     dircont=dir(fullfile(subjDIRS(i).folder,subjDIRS(i).name)); dircont(1:2)=[];

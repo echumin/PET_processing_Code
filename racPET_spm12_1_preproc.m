@@ -50,10 +50,10 @@ preprocB = 1;
 %-------------------------------------------------------------------------%
 %% Brain mask options. 
 % FOR REGISTRATION PURPOCES ONLY
-    SkullStripMeanPET = 1; % 1 to use T1-derived brain mask, 0 for no masking
+    SkullStripMeanPET = 0; % 1 to use T1-derived brain mask, 0 for no masking
 % APPLY MASKING TO ALL PET DATA
     % Works only if the above option to mask mean PET is on.
-    maskALLpet = 1; % 1 to apply brain mask to all frames, 0 for no masking
+    maskALLpet = 0; % 1 to apply brain mask to all frames, 0 for no masking
 %-------------------------------------------------------------------------%
 %% Field-of-view editing options.
     %--% WARNING %--%
@@ -64,10 +64,13 @@ preprocB = 1;
     Edit_inferiorZslices = 0; % dangerous flag
 % to remove inferior slices enter "-N" (+N to add)
 %-------------------------------------------------------------------------%
-%%
+%% Subject list selection.
+% Run all subjects:
+    %subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+% Run a single or set of subjects:
+    subjDIRS=dir([dataDIR '/*01']);
+%% End of user input
 % Looping across subjects
-%subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
-subjDIRS=dir([dataDIR '/*95']);
 for i=1:length(subjDIRS)
     % set PET subdirectory names
     dircont=dir(fullfile(subjDIRS(i).folder,subjDIRS(i).name)); dircont(1:2)=[];

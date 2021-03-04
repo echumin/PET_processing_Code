@@ -8,18 +8,22 @@
 %                Indiana University, Bloomington, 2020
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
-% set data directory paths
+%% set data directory paths
 dataDIR='/projects/pet_processing/datadir';
 outDIR='/projects/pet_processing/datadir_out';
-
+%-------------------------------------------------------------------------%
+%% Subject list selection.
+% Run all subjects:
+    %subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+% Run a single or set of subjects:
+    subjDIRS=dir([dataDIR '/*01']);
+%-------------------------------------------------------------------------%   
+%% End of user input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if ~exist(outDIR,'dir')
     mkdir(outDIR)
 end
-
-%% Loop accross subjects        
-%subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
-subjDIRS=dir([dataDIR '/*95']);% this was to run a specific subject
+%% Looping accross subjects        
 for s=1:length(subjDIRS)
     disp(subjDIRS(s).name)
     dircont=dir(fullfile(subjDIRS(s).folder,subjDIRS(s).name)); dircont(1:2)=[];

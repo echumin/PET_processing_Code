@@ -75,9 +75,16 @@ outFILE='mrtm_test1';
             277,   11, 'post_dpu'
             155,   114, 'vst'}; 
 %-------------------------------------------------------------------------%
+%% Subject list selection.
+% Run all subjects:
+    %subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+% Run a single or set of subjects:
+    subjDIRS=dir([dataDIR '/*01']);
+%-------------------------------------------------------------------------%    
 %% Raclopride half-life
 thalf=20.4;
-
+%-------------------------------------------------------------------------% 
+%% End of user input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parse out output file name
 outFILE=fullfile(outDIR,outFILE);
@@ -128,10 +135,7 @@ switch ub
         end
 end
 
-%% Loop accross subjects        
-%subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
-subjDIRS=dir([dataDIR '/*95']);
-
+%% Looping across subjects
 for i=1:length(subjDIRS)
     disp('%---------------------------------%')
     fprintf('Setting paths to %s data .....\n',subjDIRS(i).name)

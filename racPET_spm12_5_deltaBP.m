@@ -1,38 +1,48 @@
 % racPET_spm12_5_deltaBP.m
 %
-%Contributons:
-%  Evgeny Chumin, Indiana University School of Medicine, 2019
+% Computed delta BP (baseline-challenge)/baseline using SPM imcalc.
+%
+% This code follows racPET_spm12_4_MRTM2 utilizing the T1-space MRTM2 BP
+% images that are written out by it.
 %
 % Additional Notes:
 %   This code was written with spm12 and fsl5.0.10 (eddy patched)
 %   Required MRIread and MRIwrite functions available from the
 %   toolbox_matlab_nifti.
 %
+%Contributons:
+%  Evgeny Chumin, Indiana University School of Medicine, 2019
+%                 Indiana University, Bloomington, 2020
+%
 %-------------------------------------------------------------------------%
-%% Set path to your SPM directory.
+%% Set path to the SPM directory.
 addpath(genpath('/usr/local/spm12')) % set path to spm12
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
 dataDIR='/projects/pet_processing/datadir';
-outDIR='/projects/pet_processing/mrtm2_dBP_images';
+outDIR='/projects/pet_processing/mrtm2_dBP_native';
 %-------------------------------------------------------------------------%
 %% Set location of the scan order file (if empty as is order is assumed).
 % This should be a 3 column tab delimited text file with subjectID, index 
 %    of 1st scan, and index of 2nd scan.
 orderTXT='/projects/pet_processing/order_list_test.txt';
 %-------------------------------------------------------------------------%
+%% Subject list selection.
+% Run all subjects:
+    %subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+% Run a single or set of subjects:
+    subjDIRS=dir([dataDIR '/*01']);
+%-------------------------------------------------------------------------%
+%% End of user input
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
 if ~exist(outDIR,'dir')
     mkdir(outDIR)
 end
 if exist(orderTXT,'file')
     ord=readtable(orderTXT);
 end
-%-------------------------------------------------------------------------%
-%%
-% Looping across subjects
-subjDIRS=dir([dataDIR '/*95']);% this was to run a specific subject
-
-%subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+%% Looping across subjects
 for i=1:length(subjDIRS)  
      % set PET subdirectory names
     dircont=dir(fullfile(subjDIRS(i).folder,subjDIRS(i).name)); dircont(1:2)=[];
