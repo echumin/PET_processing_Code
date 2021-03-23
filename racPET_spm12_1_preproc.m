@@ -32,11 +32,11 @@
 % 
 %-------------------------------------------------------------------------%
 %% Set path to your SPM and PET_Processing_Code directories.
-addpath(genpath('/usr/local/spm12')) % set path to spm12
+addpath('/usr/local/spm12') % set path to spm12
 addpath(genpath('/projects/pet_processing/PET_processing_Code'))
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
-dataDIR='/projects/pet_processing/datadir'; 
+dataDIR='/projects/pet_processing/datadir_vanilla'; 
 %-------------------------------------------------------------------------%
 %% Preprocessing is divided into two sections: preprocA and preprocB.
 %   - Set the flags to 1 to perform their respective processing.
@@ -45,7 +45,7 @@ dataDIR='/projects/pet_processing/datadir';
 %                realignment to mean.
 %   - preprocB - brain mask PET (optional), coregister PET2 to PET1, 
 %                coregister all to T1.
-preprocA = 1;
+preprocA = 0;
 preprocB = 1;
 %-------------------------------------------------------------------------%
 %% Brain mask options. 
@@ -66,9 +66,9 @@ preprocB = 1;
 %-------------------------------------------------------------------------%
 %% Subject list selection.
 % Run all subjects:
-    %subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+ %   subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 % Run a single or set of subjects:
-    subjDIRS=dir([dataDIR '/*01']);
+    subjDIRS=dir([dataDIR '/*095']);
 %% End of user input
 % Looping across subjects
 for i=1:length(subjDIRS)

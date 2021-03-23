@@ -38,11 +38,11 @@ fsldatapath= strcat(fslpath,'/data'); % default on non-Gentoo fsl
 vermisMNI=fullfile(PETcodeDIR,'mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz');
 %-------------------------------------------------------------------------%
 %% set data directory path
-dataDIR='/projects/pet_processing/datadir';
+dataDIR='/projects/pet_processing/datadir_vanilla';
 %-------------------------------------------------------------------------%
 %% set OUTPUT directory and file name
-outDIR='/projects/pet_processing/datadir_out';
-outFILE='mrtm_test1';
+outDIR='/projects/pet_processing/datadir_vanilla_out';
+outFILE='mrtm_test2';
 %-------------------------------------------------------------------------%
 %% set ROI IDs and labels
   % name given to parcellation in pipeline (parcs.plabel(#).name)
@@ -79,7 +79,7 @@ outFILE='mrtm_test1';
 % Run all subjects:
     %subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 % Run a single or set of subjects:
-    subjDIRS=dir([dataDIR '/*01']);
+    subjDIRS=dir([dataDIR '/*95']);
 %-------------------------------------------------------------------------%    
 %% Raclopride half-life
 thalf=20.4;

@@ -16,7 +16,7 @@
 %
 %-------------------------------------------------------------------------%
 %% Set path to the SPM directory.
-addpath(genpath('/usr/local/spm12')) % set path to spm12
+addpath('/usr/local/spm12') % set path to spm12
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
 dataDIR='/projects/pet_processing/datadir';

@@ -19,17 +19,17 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 %% set system specific paths
-addpath(genpath('/usr/local/spm12')) % set path to spm12
+addpath('/usr/local/spm12') % set path to spm12
 addpath(genpath('/projects/pet_processing/PET_processing_Code'))
 %-------------------------------------------------------------------------%
 %% set data directory paths
-dataDIR='/projects/pet_processing/datadir';
+dataDIR='/projects/pet_processing/datadir_vanilla';
 %-------------------------------------------------------------------------%
 %% Subject list selection.
 % Run all subjects:
-    %subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+    subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 % Run a single or set of subjects:
-    subjDIRS=dir([dataDIR '/*01']);
+    %subjDIRS=dir([dataDIR '/*01']);
 %-------------------------------------------------------------------------%
 %% Raclopride half-life
 thalf=20.4;

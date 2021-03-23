@@ -9,14 +9,14 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 %% set data directory paths
-dataDIR='/projects/pet_processing/datadir';
-outDIR='/projects/pet_processing/datadir_out';
+dataDIR='/projects/pet_processing/datadir_vanilla';
+outDIR='/projects/pet_processing/datadir_vanilla_out';
 %-------------------------------------------------------------------------%
 %% Subject list selection.
 % Run all subjects:
-    %subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+   % subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 % Run a single or set of subjects:
-    subjDIRS=dir([dataDIR '/*01']);
+    subjDIRS=dir([dataDIR '/*95']);
 %-------------------------------------------------------------------------%   
 %% End of user input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

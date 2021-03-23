@@ -20,7 +20,7 @@
 %% set system specific paths
 addpath(genpath('/projects/pet_processing/PET_processing_Code'))
 spm12_path='/usr/local/spm12';
-addpath(genpath(spm12_path))
+addpath(spm12_path)
 %-------------------------------------------------------------------------%
 %% set data directory paths
 dataDIR='/projects/pet_processing/datadir';
