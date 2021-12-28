@@ -46,8 +46,8 @@ dataDIR='/N/project/HCPaging/yoderBP_project/BP_DTI_jenya_raw';
 %                realignment to mean.
 %   - preprocB - brain mask PET (optional), coregister PET2 to PET1, 
 %                coregister all to T1.
-preprocA = 1;
-preprocB = 0;
+preprocA = 0;
+preprocB = 1;
 %-------------------------------------------------------------------------%
 %% Brain mask options. 
 % FOR REGISTRATION PURPOCES ONLY

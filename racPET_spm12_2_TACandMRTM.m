@@ -26,11 +26,11 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 %% set system specific paths
-PETcodeDIR = '/projects/pet_processing/PET_processing_Code';
+PETcodeDIR = '/N/project/HCPaging/yoderBP_project/PET_processing_Code';
 addpath(genpath(PETcodeDIR))
 %-------------------------------------------------------------------------%
 %% set path to fsl for shape models
-fslpath='/usr/local/fsl'; %DO NOT PUT A SLASH ON THE END
+fslpath='/N/soft/rhel7/fsl/6.0.1b'; %DO NOT PUT A SLASH ON THE END
 fsldatapath= strcat(fslpath,'/data'); % default on non-Gentoo fsl
 %fsldatapath='/usr/share/fsl/data'; % Gentoo fsl data location
 %-------------------------------------------------------------------------%
@@ -38,16 +38,16 @@ fsldatapath= strcat(fslpath,'/data'); % default on non-Gentoo fsl
 vermisMNI=fullfile(PETcodeDIR,'mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz');
 %-------------------------------------------------------------------------%
 %% set data directory path
-dataDIR='/projects/pet_processing/datadir_vanilla';
+dataDIR='/N/project/HCPaging/yoderBP_project/BP_DTI_jenya_raw';
 %-------------------------------------------------------------------------%
 %% set OUTPUT directory and file name
-outDIR='/projects/pet_processing/datadir_vanilla_out';
-outFILE='mrtm_test2';
+outDIR='/N/project/HCPaging/yoderBP_project/BP_jenya_out';
+outFILE='BP-mrtm';
 %-------------------------------------------------------------------------%
 %% set ROI IDs and labels
   % name given to parcellation in pipeline (parcs.plabel(#).name)
   % parcs_plabel_name = 'tian_subcortical_S3';
-  parcs_plabel_name = 'shen_286';
+  parcs_plabel_name = 'tian_subcortical_S2';
   % example setups for roiDATA structure
   %         BILATERAL CASE         |         LIST CASE
   % roiDATA= {'L_', 'R_', 'label'; | roiDATA= {'ID', 'label';
@@ -67,19 +67,20 @@ outFILE='mrtm_test2';
 %             53,    11, 'caud_head'
 %             52,    25, 'nacc'};
 
-% Martinez ROI within Shen 286
+% Tian Scale 2 ROI
   roiDATA= {'L_', 'R_', 'label';
-            267,   25, 'pre_dca'
-            264,   52, 'post_dca'
-            153,   128, 'pre_dpu'
-            277,   11, 'post_dpu'
-            155,   114, 'vst'}; 
+            25,   9, 'NAc-shell'
+            26,   10, 'NAc-core'
+            29,   13, 'aPUT'
+            30,   14, 'pPUT'
+            31,   15, 'aCAU'
+            32,   16, 'pCAU'}; 
 %-------------------------------------------------------------------------%
 %% Subject list selection.
 % Run all subjects:
-    %subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+    subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 % Run a single or set of subjects:
-    subjDIRS=dir([dataDIR '/*95']);
+   % subjDIRS=dir([dataDIR '/*20120']);
 %-------------------------------------------------------------------------%    
 %% Raclopride half-life
 thalf=20.4;
@@ -194,6 +195,7 @@ for p=1:length(petList) % loop over PET scans
     numSlices=size(volNAT,3);                                               % find number of slices in each volume
     
     % initialize time-frame data
+    clear TimeFrames
     TimeFrames(1,1)=0;                                                      % initial TAC point starts at 0
     %referring to dicom data, generate time-frames
     dcmString=dir(fullfile(petDIR,'Nii-*FBP_RACd*/*.dcm'));                 % get list of dicoms
@@ -307,6 +309,7 @@ for p=1:length(petList) % loop over PET scans
             [~,result]=system(sprintf('fslmaths %s -mas %s %s',crblmFull,GM2mm,crblmFINAL));disp(result)
 
             fprintf('Extracting TAC for cerebellar reference.\n')
+            clear TACcrblm
             volROI = MRIread(crblmFINAL); volROI=volROI.vol;
             for timePoint=1:numTimePoints
                 aux=reshape(volPET(:,:,:,timePoint),[sizeX,sizeY,sizeZ]); 
