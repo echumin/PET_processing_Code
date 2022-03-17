@@ -10,13 +10,15 @@
 %-------------------------------------------------------------------------%
 %% set data directory paths
 dataDIR='/N/project/HCPaging/yoderBP_project/BP_DTI_jenya_raw';
-outDIR='/N/project/HCPaging/yoderBP_project/QC_sheets';
+outDIR='/N/project/HCPaging/yoderBP_project/QC_sheets_pet1_run2';
 %-------------------------------------------------------------------------%
 %% Subject list selection.
 % Run all subjects:
     subjDIRS=dir(dataDIR); subjDIRS(1:2)=[];
 % Run a single or set of subjects:
    % subjDIRS=dir([dataDIR '/*95']);
+% For the above specified subjects, run PET 1, 2, or all
+    pRUN = 1; % options =1, =2, or =[] to run all PET scans.
 %-------------------------------------------------------------------------%   
 %% End of user input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -32,6 +34,9 @@ for s=1:length(subjDIRS)
         if dircont(p).isdir==1 && ~isempty(strfind(dircont(p).name,'PET'))
             petList(end+1).name=dircont(p).name;
         end
+    end
+    if ~isempty(pRUN)
+        petList = petList(pRUN);
     end
 %% Loop across PET sessions
 for p=1:length(petList) % loop over PET scans

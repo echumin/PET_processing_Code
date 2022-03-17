@@ -47,7 +47,7 @@ dataDIR='/N/project/HCPaging/yoderBP_project/BP_DTI_jenya_raw';
 %   - preprocB - brain mask PET (optional), coregister PET2 to PET1, 
 %                coregister all to T1.
 preprocA = 1;
-preprocB = 0;
+preprocB = 1;
 %-------------------------------------------------------------------------%
 %% Brain mask options. 
 % FOR REGISTRATION PURPOCES ONLY
@@ -69,7 +69,15 @@ preprocB = 0;
 % Run all subjects:
  %   subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 % Run a single or set of subjects:
-   subjDIRS=dir([dataDIR '/*079']);
+   subjDIRS=dir([dataDIR '/*2085']);
+% For the above specified subjects, run PET 1, 2, or all
+    pRUN = 1; % options =1, =2, or =[] to run all PET scans.
+%-------------------------------------------------------------------------%
+%% Advanced flags.
+intdpbg = 1; % intermediate debug : writes a 4D image for each step
+             % should help identify potential issues.
+skipcoreg = 0; % when rerunning for debugging, skip coregistration of frames
+               % to mean and use existing r*nii images
 %% End of user input
 % Looping across subjects
 for i=1:length(subjDIRS)
@@ -81,13 +89,16 @@ for i=1:length(subjDIRS)
             petList(end+1).name=dircont(p).name;
         end
     end
+    if ~isempty(pRUN)
+        petList = petList(pRUN);
+    end
 %% Create an early mean PET image
 if ~isempty(petList)
     t1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,'T1');
 if exist(fullfile(t1DIR,'T1_fov_denoised.nii'),'file')
     fprintf('Processing subject: %s\n',subjDIRS(i).name)
 if preprocA == 1
-    for p=2:length(petList) % loop over PET scans
+    for p=1:length(petList) % loop over PET scans
         petDIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(p).name);
         % if dynamic data exists
         if ~isempty(dir(fullfile(petDIR,'Nii-*FBP_RACd*')))
@@ -111,6 +122,14 @@ if preprocA == 1
            for j=2:15
                copyfile(fullfile(niiDIR,frames(j).name),[niiDIR '/tmp_' frames(j).name])
                matlabbatch{1}.spm.spatial.realign.estwrite.data{1,1}{j-1,1}=sprintf('%s/tmp_%s,1',niiDIR,frames(j).name);
+           end
+           if intdpbg == 1
+               if ~exist([petDIR '/intdbg'],'dir')
+                   mkdir([petDIR '/intdbg'])
+               end
+               infiles = [niiDIR '/tmp_*nii'];
+               outfile = [petDIR '/intdbg/raw4_earlyMean'];
+               [~,result]=system(sprintf('fslmerge -t %s %s',outfile,infiles));
            end
             matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.quality = 1;
             matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.sep = 4;
@@ -138,9 +157,27 @@ if preprocA == 1
         % populate a list of mean images
         mean=dir(fullfile(niiDIR,'mean*.nii'));
         means{p,1}=[fullfile(mean(1).folder,mean(1).name) ',1'];
+        if intdpbg == 1
+            copyfile(fullfile(mean(1).folder,mean(1).name),[petDIR '/intdbg/' mean(1).name])
+        end
         clear mean
 %% Motion correct each frame to the early-Mean PET (Coregistration)
+if skipcoreg == 1
+    chk = dir([niiDIR '/r*nii']);
+    if ~isempty(chk)
+        disp('Bypassing Coregistration: using existing r*nii images')
+        clear chk
+        rn = 0;
+    else
+        disp('Bypassing Coregistration not possible: no r*nii images')
+        rn = 1;
+    end
+else
+    rn = 1;
+end
+if rn == 1
         disp('Coregistering individual frames to respective mean PET')
+        disp('Operating on temporary copies, original image headers remain unedited')
         spm_figure('GetWin','Graphics');
         matlabbatch{1}.spm.spatial.coreg.estwrite.ref{1,1} = means{p,1};
         matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.cost_fun = 'nmi';
@@ -151,28 +188,42 @@ if preprocA == 1
         matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.wrap = [0 0 0];
         matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.mask = 0;
         matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.prefix = 'r';
-        for k=1:length(frames)
-            % commented section is meant to apply registration parameters
-            % from frame 2 to frame 1
-            %if k==2 
-            %    matlabbatch{1}.spm.spatial.coreg.estwrite.other = {sprintf('%s/%s,1',niiDIR,frames(1).name)};
-            %else
+        for k=2:length(frames)
+            % frame 1 is carried along with frame 2, because it is unlikely
+            % to have sufficient snr for registration.
+            if k==2 
+               copyfile(fullfile(niiDIR,frames(1).name),[niiDIR '/tmp_' frames(1).name])
+               matlabbatch{1}.spm.spatial.coreg.estwrite.other = {sprintf('%s/tmp_%s,1',niiDIR,frames(1).name)};
+            else
                 matlabbatch{1}.spm.spatial.coreg.estwrite.other = {''};
-            %end
-        matlabbatch{1}.spm.spatial.coreg.estwrite.source = {sprintf('%s/%s,1',niiDIR,frames(k).name)};
+            end    
+        copyfile(fullfile(niiDIR,frames(k).name),[niiDIR '/tmp_' frames(k).name])
+        matlabbatch{1}.spm.spatial.coreg.estwrite.source = {sprintf('%s/tmp_%s,1',niiDIR,frames(k).name)};
         spm_jobman('run',matlabbatch);
         fprintf('%d/%d - %s completed!\n',k,length(frames),frames(k).name)
         clear matlabbatch{1}.spm.spatial.coreg.estwrite.source
         clear matlabbatch{1}.spm.spatial.coreg.estwrite.other
+        if k==2
+            delete([niiDIR '/tmp_' frames(1).name])
+            movefile([niiDIR '/rtmp_' frames(1).name],fullfile(niiDIR,['r' frames(1).name]))
+        end
+        delete([niiDIR '/tmp_' frames(k).name])
+        movefile([niiDIR '/rtmp_' frames(k).name],fullfile(niiDIR,['r' frames(k).name]))
         end  
         clear matlabbatch
         ps_rename('spm_coreg2mean.ps')
+        if intdpbg == 1
+           infiles = [niiDIR '/r*nii'];
+           outfile = [petDIR '/intdbg/coregistered_preRealignEst'];
+           [~,result]=system(sprintf('fslmerge -t %s %s',outfile,infiles));
+        end
+end
 %% Final Pass Motion Correction
         disp('Realigning individual frames to respective mean PET')
         spm_figure('GetWin','Graphics');
         matlabbatch{1}.spm.spatial.realign.estimate.data{1,1}{1,1} = means{p,1};
-        for j=1:length(frames)
-            matlabbatch{1}.spm.spatial.realign.estimate.data{1,1}{j+1,1} = sprintf('%s/%s,1',niiDIR,['r' frames(j).name]);
+        for j=2:length(frames)
+            matlabbatch{1}.spm.spatial.realign.estimate.data{1,1}{j,1} = sprintf('%s/%s,1',niiDIR,['r' frames(j).name]);
         end
         matlabbatch{1}.spm.spatial.realign.estimate.eoptions.quality = 1;
         matlabbatch{1}.spm.spatial.realign.estimate.eoptions.sep = 4;
@@ -233,8 +284,8 @@ if length(petList)>1
     end    
     ps_rename('spm_coregPET2toPET1.ps')
 else
-    if ~exist('means','var')
-        nii1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'nii_dynamic_preproc');
+    nii1DIR=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'nii_dynamic_preproc');
+    if ~exist('means','var')   
         mean=dir(fullfile(nii1DIR,'mean*.nii'));
         means{1,1}=[fullfile(mean(1).folder,mean(1).name) ',1'];
         clear mean
@@ -272,7 +323,7 @@ end
     end
     clear frames 
     if length(petList)>1 && SkullStripMeanPET == 1
-        matlabbatch{1}.spm.spatial.coreg.estwrite.other = vertcat(other1,masked_means,other2);
+        matlabbatch{1}.spm.spatial.coreg.estwrite.other = vertcat(other1,masked_means,other2); % THIS MAY BE MISSING A SECOND FILE SPECIFICATION
     elseif length(petList)>1 && SkullStripMeanPET ~= 1
         matlabbatch{1}.spm.spatial.coreg.estwrite.other = vertcat(other1,means{2:end,1},other2);
     else
@@ -294,4 +345,5 @@ end
     clear matlabbatch
     ps_rename('spm_coregAll2T1.ps')
 end
+clear niiDIR nii1DIR nii2DIR means petList
 end

@@ -34,15 +34,16 @@ fslpath='/N/soft/rhel7/fsl/6.0.1b'; %DO NOT PUT A SLASH ON THE END
 fsldatapath= strcat(fslpath,'/data'); % default on non-Gentoo fsl
 %fsldatapath='/usr/share/fsl/data'; % Gentoo fsl data location
 %-------------------------------------------------------------------------%
-%% set path to MNI cerebellar vermis template
+%% set path to MNI cerebellar templates
 vermisMNI=fullfile(PETcodeDIR,'mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz');
+cerebellumMNI=fullfile(PETcodeDIR,'mawlawi_roi_code/cerebellum/cerebellum_MNI_1mm_bin.nii.gz');
 %-------------------------------------------------------------------------%
 %% set data directory path
 dataDIR='/N/project/HCPaging/yoderBP_project/BP_DTI_jenya_raw';
 %-------------------------------------------------------------------------%
 %% set OUTPUT directory and file name
-outDIR='/N/project/HCPaging/yoderBP_project/BP_jenya_out';
-outFILE='BP-mrtm';
+outDIR='/N/project/HCPaging/yoderBP_project/MRTM-out-pet1-run2';
+outFILE='BP-run2-all';
 %-------------------------------------------------------------------------%
 %% set ROI IDs and labels
   % name given to parcellation in pipeline (parcs.plabel(#).name)
@@ -76,11 +77,17 @@ outFILE='BP-mrtm';
             31,   15, 'aCAU'
             32,   16, 'pCAU'}; 
 %-------------------------------------------------------------------------%
+%% set method for cerebellar mask estimation
+cerebmethod = 'mni'; % mni -> use mni to native transformation of a template
+                     % first -> estimate cerebellum in native space with
+                     % fsl first.
 %% Subject list selection.
 % Run all subjects:
     subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 % Run a single or set of subjects:
-   % subjDIRS=dir([dataDIR '/*20120']);
+  %  subjDIRS=dir([dataDIR '/*059']);
+% For the above specified subjects, run PET 1, 2, or all
+    pRUN = 1; % options =1, =2, or =[] to run all PET scans.
 %-------------------------------------------------------------------------%    
 %% Raclopride half-life
 thalf=20.4;
@@ -147,6 +154,9 @@ for i=1:length(subjDIRS)
         if dircont(p).isdir==1 && ~isempty(strfind(dircont(p).name,'PET'))
             petList(end+1).name=dircont(p).name;
         end
+    end
+    if ~isempty(pRUN)
+        petList = petList(pRUN);
     end
     % Perform file checks
     if ~isempty(petList)
@@ -221,6 +231,7 @@ for p=1:length(petList) % loop over PET scans
         fprintf('Working on subject: %s\n',subjDIRS(i).name)
         volPET = MRIread(pet4D);  volPET=volPET.vol;
         [sizeX,sizeY,sizeZ,numTimePoints]=size(volPET);
+        sizeROI=cell.empty;
         % Looping across ROI
         for j=1:ub
             for k=2:nr
@@ -230,6 +241,7 @@ for p=1:length(petList) % loop over PET scans
                     case 2 % bilateral case
                         rl = [roiDATA{1,j} roiDATA{k,lp}];
                 end
+                sizeROI{end+1,1} = rl;
                 fprintf('Starting processing for %s; Parcellation ID: %d\n',rl,roiDATA{k,j})
                 disp('Extracting ROI from GM_parc')
                 % extract ROI from parcellation
@@ -238,6 +250,7 @@ for p=1:length(petList) % loop over PET scans
                 [~,result]=system(sentence);disp(result)
                 fprintf('Extracting TAC for %s\n\n',rl)
                 volROI = MRIread(roiOUT); volROI=volROI.vol;
+                sizeROI{end,2} = nnz(volROI);
                 % for each PET frame, get mean activity from mask
                 for timePoint=1:numTimePoints
                     aux=reshape(volPET(:,:,:,timePoint),[sizeX,sizeY,sizeZ]); 
@@ -259,7 +272,17 @@ for p=1:length(petList) % loop over PET scans
         if ~exist(crblmDIR,'dir')
             mkdir(crblmDIR)
         end
+        % Use transformations from connectivity pipeline to bring vermis 
+        % mask (and optionally cerebellum) to T1-space.
+        invwarp=fullfile(t1DIR,'registration','MNI2T1_warp.nii.gz');
+        invomat12=fullfile(t1DIR,'registration','MNI2T1_dof12.mat');
+        invomat6=fullfile(t1DIR,'registration','MNI2T1_dof6.mat');
+        invconcmat=fullfile(t1DIR,'registration','MNI2T1_linear.mat');
+        [~,result]=system(sprintf('convert_xfm -omat %s -concat %s %s',invconcmat,invomat6,invomat12));disp(result)
         T1=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'T1_2mm_fov_denoised.nii');
+        % -------------------------------------------
+        switch cerebmethod
+            case 'first'
         outBasename=fullfile(crblmDIR,'subj_2_std_subc');
         [~,result]=system(sprintf('first_flirt %s %s -cort',T1,outBasename));disp(result)
         [~,~]=system(sprintf('rm %s/*subc.mat* %s/*subc.nii* %s/*cort.nii*',crblmDIR,crblmDIR,crblmDIR));
@@ -278,23 +301,25 @@ for p=1:length(petList) % loop over PET scans
         
         [~,result]=system(sprintf('fslmaths %s/R_cerebellum_corr_bin.nii.gz -add %s/L_cerebellum_corr_bin.nii.gz %s/cerebellum_bin',crblmDIR,crblmDIR,crblmDIR));disp(result)
         [~,result]=system(sprintf('fslmaths %s/cerebellum_bin.nii.gz -fillh %s/cerebellum_bin_filled',crblmDIR,crblmDIR));disp(result)
-        [~,result]=system(sprintf('fslmaths %s/cerebellum_bin_filled.nii.gz -dilD %s/cerebellum_bin_filled_dil',crblmDIR,crblmDIR));disp(result)
         [~,test]=system(sprintf('rm %s/R_cerebellum* %s/L_cerebellum*',crblmDIR,crblmDIR));
-        
-        % Use transformations from connectivity pipeline to bring vermis mask to T1-space.
-        invwarp=fullfile(t1DIR,'registration','MNI2T1_warp.nii.gz');
-        invomat12=fullfile(t1DIR,'registration','MNI2T1_dof12.mat');
-        invomat6=fullfile(t1DIR,'registration','MNI2T1_dof6.mat');
-        invconcmat=fullfile(t1DIR,'registration','MNI2T1_linear.mat');
+        % -----------------------------------------------------------------------------
+            case 'mni'
+        cerebellumNATIVE=fullfile(crblmDIR,'cerebellum.nii.gz');
+        [~,result]=system(sprintf('applywarp --in=%s --out=%s --ref=%s --warp=%s --postmat=%s',...
+            cerebellumMNI,cerebellumNATIVE,T1,invwarp,invconcmat));disp(result)
+        [~,result]=system(sprintf('fslmaths %s -bin -fillh %s/cerebellum_bin',cerebellumNATIVE,crblmDIR));disp(result)
+        %[~,result]=system(sprintf('fslmaths %s/cerebellum_bin.nii.gz -fillh %s/cerebellum_bin_filled',crblmDIR,crblmDIR));disp(result)
+        end
+        % --------------------------------------------------------------------------------
         
         vermisNATIVE=fullfile(crblmDIR,'vermis');
-        [~,result]=system(sprintf('convert_xfm -omat %s -concat %s %s',invconcmat,invomat6,invomat12));disp(result)
         [~,result]=system(sprintf('applywarp --in=%s --out=%s --ref=%s --warp=%s --postmat=%s',...
             vermisMNI,vermisNATIVE,T1,invwarp,invconcmat));disp(result)
+        
         % use inverse vermins mask to remove it from cerebellum mask
-        [~,result]=system(sprintf('fslmaths %s.nii.gz -binv %s_binv',vermisNATIVE,vermisNATIVE));disp(result)
-        crblmFull=fullfile(crblmDIR,'cerebellum_noVermis_full.nii.gz');
-        [~,result]=system(sprintf('fslmaths %s/cerebellum_bin_filled.nii.gz -mas %s_binv.nii.gz %s',crblmDIR,vermisNATIVE,crblmFull));disp(result)
+        [~,result]=system(sprintf('fslmaths %s.nii.gz -dilD -binv %s_binv',vermisNATIVE,vermisNATIVE));disp(result)
+        crblmFull=fullfile(crblmDIR,'cerebellum_noVermis.nii.gz');
+        [~,result]=system(sprintf('fslmaths %s/cerebellum_bin.nii.gz -mas %s_binv.nii.gz %s',crblmDIR,vermisNATIVE,crblmFull));disp(result)
         % Isolate cerebellar Gray Matter
         GM2mm=fullfile(subjDIRS(i).folder,subjDIRS(i).name,petList(1).name,'T1_2mm_GM_mask.nii.gz');
         if ~exist(GM2mm,'file')
@@ -304,13 +329,20 @@ for p=1:length(petList) % loop over PET scans
                 [~,result]=system(sentence);disp(result) 
             end
         end
+        
         if exist(GM2mm,'file')
-            crblmFINAL=fullfile(crblmDIR,'cerebellum_noVermis.nii.gz');
-            [~,result]=system(sprintf('fslmaths %s -mas %s %s',crblmFull,GM2mm,crblmFINAL));disp(result)
-
+            crblmERO=fullfile(crblmDIR,'cerebellum_noVermis_ero.nii.gz');
+            crblmFINAL=fullfile(crblmDIR,'cerebellum_noVermis_ero_gm.nii.gz');
+            % erode cerebellar
+            [~,result]=system(sprintf('fslmaths %s -ero %s',crblmFull,crblmERO));disp(result)
+            % masks by GM
+            [~,result]=system(sprintf('fslmaths %s -mas %s %s',crblmERO,GM2mm,crblmFINAL));disp(result)
+            
             fprintf('Extracting TAC for cerebellar reference.\n')
             clear TACcrblm
             volROI = MRIread(crblmFINAL); volROI=volROI.vol;
+            sizeROI{end+1,1}='cerebellum';
+            sizeROI{end,2}=nnz(volROI);
             for timePoint=1:numTimePoints
                 aux=reshape(volPET(:,:,:,timePoint),[sizeX,sizeY,sizeZ]); 
                 TACcrblm(timePoint,1)=nanmean(aux(volROI>0));
@@ -319,7 +351,9 @@ for p=1:length(petList) % loop over PET scans
             tac_crblm_txt=horzcat(TimeFrames,TACcrblm);
             dlmwrite(fullfile(roiDIR,'cerebellum_tac.txt'),tac_crblm_txt,'delimiter','\t','precision','%.6f')
             clear TAC tac_crblm_txt 
-
+            writetable(cell2table(sizeROI,'VariableNames',{'ROI','Voxels'}),fullfile(roiDIR,'roi_size.txt'),'Delimiter','\t')
+            clear sizeROI
+            
            % pleallocate MRTM outputs
             subjMRTMout={'ROI','BP','R1','k2','k2a','k2r'};
             mrtmOUTbp{end+1,1}=subjDIRS(i).name;

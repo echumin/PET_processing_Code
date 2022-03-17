@@ -37,6 +37,7 @@ scan='PET1';
 %   must be a vector of integers; must list in order smallest to largest
 frames2reg = [50 51 52 53 54 55]; 
 %-------------------------------------------------------------------------%
+Gframe=49;
 
 % Finding the subject
 subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
@@ -59,14 +60,14 @@ for i=1:length(subjDIRS)
         matlabbatch{1}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
         for k=1:length(frames2reg)
             Bframe=frames2reg(k);
-            Gframe=frames2reg(k)-1;
+           % Gframe=frames2reg(k)-1;
             matlabbatch{1}.spm.spatial.coreg.estimate.ref = {sprintf('%s/%s,1',niiDIR,frames(Gframe).name)};
             matlabbatch{1}.spm.spatial.coreg.estimate.source = {sprintf('%s/%s,1',niiDIR,frames(Bframe).name)};
             spm_jobman('run',matlabbatch);
             fprintf('%d/%d - %s completed!\n',Bframe,length(frames),frames(Bframe).name)
             clear matlabbatch{1}.spm.spatial.coreg.estwrite.source
             clear matlabbatch{1}.spm.spatial.coreg.estwrite.ref
-            clear Bframe Gframe
+            clear Bframe %Gframe
         end 
         clear matlabbatch
        else
