@@ -29,10 +29,34 @@ function racPET_spm12_dropFrame_TACandMRTM(dataDIR,subjectID,scan,indices2drop)
 % Evgeny Chumin, IU BLoomington, 2020
 %% 
 % set system specific paths
-addpath(genpath('/projects/pet_processing/PET_processing_Code/toolbox_matlab_nifti'))
-addpath(genpath('/projects/pet_processing/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
+addpath(genpath('/N/project/HCPaging/yoderBP_project/PET_processing_Code/toolbox_matlab_nifti'))
+addpath(genpath('/N/project/HCPaging/yoderBP_project/PET_processing_Code/yapmat-0.0.3a2-ec/src'))
 % Raclopride half-life
 thalf=20.4;
+
+  roiDATA= {'L_', 'R_', 'label';
+            25,   9, 'NAc-shell'
+            26,   10, 'NAc-core'
+            29,   13, 'aPUT'
+            30,   14, 'pPUT'
+            31,   15, 'aCAU'
+            32,   16, 'pCAU'};
+        
+% find number of roi (k) and whether they are bilateral or single list (j)
+ub = size(roiDATA,2)-1;
+lp = ub+1; % label position
+if ub > 2
+    fprintf(2,'Too many columns in roiDATA cell structure. Max 3 colums allowed.\n')
+    return
+elseif ub < 1
+    fprintf(2,'roiDATA must be a minimum of 2 columns (IDs and Labels).\n')
+    return
+end
+nr = size(roiDATA,1);
+if nr < 2
+    fprintf(2,'roiDATA must be a minumum of 2 rows (Column names and at least 1 ROI).\n')
+    return
+end
 %%
 % set directory paths
 dropString=sprintf('-%d',indices2drop);
@@ -45,8 +69,6 @@ if exist(roiDIR_all,'dir') && exist(fullfile(roiDIR_all,'cerebellum_tac.txt'),'f
         mkdir(roiDIR_drop)
     end
 
-    % pleallocate MRTM outputs
-    subjMRTMout={'ROI','BP','R1','k2','k2a','k2r'};
     % get list of tac files to edit
     tacList=dir([roiDIR_all '/*tac.txt']);
     indices2drop=sort(indices2drop,'descend');
@@ -60,24 +82,37 @@ if exist(roiDIR_all,'dir') && exist(fullfile(roiDIR_all,'cerebellum_tac.txt'),'f
         dlmwrite(fullfile(roiDIR_drop,tacList(ii).name),tacDATA,'delimiter','\t','precision','%.6f')
         clear tacDATA
     end
-    % remove the reference region from the list
-    [~,cerebTACindex]=find(strcmp(struct2cell(tacList),'cerebellum_tac.txt'));
-    tacList(cerebTACindex)=[];
+    
+    % reference region
     Cr=fullfile(roiDIR_drop,'cerebellum_tac.txt');
     
-    % Looping over the ROI     
-    for k=1:length(tacList)                
-        subjMRTMout{end+1,1}=extractBefore(tacList(k).name,'_tac.txt'); %#ok<*AGROW>
-        Ct=fullfile(roiDIR_drop,tacList(k).name);        
-        [BP, R1, k2, k2a, k2r] = mrtm (Ct, Cr, roiDIR_drop, thalf, 'conventional');
-        subjMRTMout{end,2}=BP;  
-        subjMRTMout{end,3}=R1;  
-        subjMRTMout{end,4}=k2;  
-        subjMRTMout{end,5}=k2a; 
-        subjMRTMout{end,6}=k2r; 
-        clear BP R1 k2 k2a k2r
-        close all
+    % pleallocate MRTM outputs
+    subjMRTMout={'ROI','BP','R1','k2','k2a','k2r'};
+    % Looping over the ROI
+    counter=1;
+    for j=1:ub
+        for k=2:nr
+            switch ub
+                case 1 % list case
+                    rl = roiDATA{k,lp}; % roi label
+                case 2 % bilateral case
+                    rl = [roiDATA{1,j} roiDATA{k,lp}];
+            end
+            counter=counter+1;
+            subjMRTMout{end+1,1}=sprintf('%s',rl);
+            fprintf('Running MRTM for %s\n',rl)
+            Ct=fullfile(roiDIR_drop,sprintf('%s_tac.txt',rl));
+            [BP, R1, k2, k2a, k2r] = mrtm (Ct, Cr, roiDIR_drop, thalf, 'conventional');
+            subjMRTMout{end,2}=BP;  
+            subjMRTMout{end,3}=R1;  
+            subjMRTMout{end,4}=k2;  
+            subjMRTMout{end,5}=k2a; 
+            subjMRTMout{end,6}=k2r; 
+            clear BP R1 k2 k2a k2r
+            close all
+        end
     end
+    clear counter
 
     % save subject results
     fileOUT=fullfile(roiDIR_drop,sprintf('%s_mrtm_output.mat',subjectID));
