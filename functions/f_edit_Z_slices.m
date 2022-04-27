@@ -1,4 +1,4 @@
-function edit_Z_slices(frames,numslices)
+function f_edit_Z_slices(frames,numslices)
 % remove or pad slices on the inferior edge of an image.
 % REQUIRED: AFNI installed and in your bashrc
 % INPUTS:
