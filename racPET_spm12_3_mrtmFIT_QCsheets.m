@@ -9,8 +9,8 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 %% set data directory paths
-dataDIR='/N/project/HCPaging/yoderBP_project/BP_DTI_jenya_raw';
-outDIR='/N/project/HCPaging/yoderBP_project/QC_sheets_pet1_run2';
+dataDIR='/data01/W2D/w2d_proc_mar22/datadir_5';
+outDIR='/data01/W2D/w2d_proc_mar22/qc_sheets_run1_all';
 %-------------------------------------------------------------------------%
 %% Subject list selection.
 % Run all subjects:
@@ -18,7 +18,7 @@ outDIR='/N/project/HCPaging/yoderBP_project/QC_sheets_pet1_run2';
 % Run a single or set of subjects:
    % subjDIRS=dir([dataDIR '/*95']);
 % For the above specified subjects, run PET 1, 2, or all
-    pRUN = 1; % options =1, =2, or =[] to run all PET scans.
+    pRUN = []; % options =1, =2, or =[] to run all PET scans.
 %-------------------------------------------------------------------------%   
 %% End of user input
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

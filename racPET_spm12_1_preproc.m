@@ -32,12 +32,13 @@
 % 
 %-------------------------------------------------------------------------%
 %% Set path to your SPM and PET_Processing_Code directories.
-%addpath('/usr/local/spm12') % set path to spm12
-addpath('/geode2/soft/hps/rhel7/spm/12/') % set path to spm12
-addpath(genpath('/N/project/HCPaging/yoderBP_project/PET_processing_Code'))
+addpath('/usr/local/spm12') % set path to spm12
+%addpath('/geode2/soft/hps/rhel7/spm/12/') % set path to spm12
+%addpath(genpath('/N/project/HCPaging/yoderBP_project/PET_processing_Code'))
+addpath(genpath('/data01/W2D/w2d_proc_mar22/PET_processing_Code'))
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
-dataDIR='/N/project/HCPaging/yoderBP_project/BP_DTI_jenya_raw'; 
+dataDIR='/data01/W2D/w2d_proc_mar22/datadir_5'; 
 %-------------------------------------------------------------------------%
 %% Preprocessing is divided into two sections: preprocA and preprocB.
 %   - Set the flags to 1 to perform their respective processing.
@@ -47,7 +48,7 @@ dataDIR='/N/project/HCPaging/yoderBP_project/BP_DTI_jenya_raw';
 %   - preprocB - brain mask PET (optional), coregister PET2 to PET1, 
 %                coregister all to T1.
 preprocA = 1;
-preprocB = 1;
+preprocB = 0;
 %-------------------------------------------------------------------------%
 %% Brain mask options. 
 % FOR REGISTRATION PURPOCES ONLY
@@ -67,14 +68,14 @@ preprocB = 1;
 %-------------------------------------------------------------------------%
 %% Subject list selection.
 % Run all subjects:
- %   subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
+    subjDIRS=dir(dataDIR);subjDIRS(1:2)=[];
 % Run a single or set of subjects:
-   subjDIRS=dir([dataDIR '/*2085']);
+  % subjDIRS=dir([dataDIR '/*2085']);
 % For the above specified subjects, run PET 1, 2, or all
-    pRUN = 1; % options =1, =2, or =[] to run all PET scans.
+    pRUN = []; % options =1, =2, or =[] to run all PET scans.
 %-------------------------------------------------------------------------%
 %% Advanced flags.
-intdpbg = 1; % intermediate debug : writes a 4D image for each step
+intdpbg = 0; % intermediate debug : writes a 4D image for each step
              % should help identify potential issues.
 skipcoreg = 0; % when rerunning for debugging, skip coregistration of frames
                % to mean and use existing r*nii images

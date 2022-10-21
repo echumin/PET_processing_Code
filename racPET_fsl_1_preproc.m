@@ -28,12 +28,12 @@
 % 
 %-------------------------------------------------------------------------%
 %% Set path to your FSL and PET_Processing_Code directories.
-fslpath='/N/soft/rhel7/fsl/6.0.5'; %DO NOT PUT A SLASH ON THE END
+fslpath='/usr/local/fsl'; %DO NOT PUT A SLASH ON THE END
 fsldatapath= strcat(fslpath,'/data'); % default on non-Gentoo fsl
 %fsldatapath='/usr/share/fsl/data'; % Gentoo fsl data location
 %-------------------------------------------------------------------------%
 %% Set location of the subject directories.
-dataDIR='/N/project/HCPaging/yoderBP_project/datadir_test'; 
+dataDIR='/data01/W2D/w2d_proc_mar22/datadir_fsl'; 
 %-------------------------------------------------------------------------%
 %% Preprocessing is divided into two sections: preprocA and preprocB.
 %   - Set the flags to 1 to perform their respective processing.
@@ -220,32 +220,45 @@ end
     system(sprintf('flirt -in %s -ref %s -out %s -omat %s -cost mutualinfo -dof 6 -interp spline -searchrx -45 45 -searchry -45 45 -searchrz -45 45',...
         means{1,1},fileref,fileout,filemat))
     %
+    filein = fullfile(nii1DIR,'rFBP_RACd.nii.gz');
+    fileout10 = fullfile(nii1DIR,'rT1_rFBP_RACd.nii.gz');
+   system(sprintf('applyxfm4D %s %s %s %s -interp spline -singlematrix',filein,fileref,fileout10,filemat))
+    %
     fileout2 = fullfile(nii1DIR,['wrT1_' mean1]); 
     filemat2 = fullfile(nii1DIR,'pet1_to_T1_2.mat'); 
     % second pass
     system(sprintf('flirt -in %s -ref %s -out %s -omat %s -refweight %s -cost mutualinfo -dof 6 -interp spline -searchrx -15 15 -searchry -15 15 -searchrz -15 15',...
         fileout,fileref,fileout2,filemat2,refweight))
+    %
+    filein = fullfile(nii1DIR,'rT1_rFBP_RACd.nii.gz');
+    fileout10 = fullfile(nii1DIR,'wrT1_rFBP_RACd.nii.gz');
+   system(sprintf('applyxfm4D %s %s %s %s -interp spline -singlematrix',filein,fileref,fileout10,filemat2))
+   %
+    % concatenate transformations 
+    matout = fullfile(nii1DIR,'pet1_to_T1_final.mat');
+        system(sprintf('convert_xfm -omat %s -concat %s %s',matout,filemat2,filemat))
+    
     %apply transform to pet 1 data
     filein = fullfile(nii1DIR,'rFBP_RACd.nii.gz');
    
    fileout = fullfile(nii1DIR,'rT1_rFBP_RACd.nii.gz');
-   system(sprintf('applyxfm4D %s %s %s %s --singlematrix',filein,fileref,fileout,filemat))
-    
+   system(sprintf('applyxfm4D %s %s %s %s -interp spline -singlematrix',filein,fileref,fileout,matout))
+        
     if length(petList)>1
         % concatenate transformations from pet2topet1 and pet1toT1
-        matout = fullfile(nii2DIR,'pet2_to_T1.mat');
+        matout2 = fullfile(nii2DIR,'pet2_to_T1.mat');
         mat1 = fullfile(nii2DIR,'pet2flirt_pet1.mat');
-        system(sprintf('convert_xfm -omat %s -concat %s %s',matout,mat1,filemat))
+        system(sprintf('convert_xfm -omat %s -concat %s %s',matout2,mat1,matout))
         
         % apply transformation to mean 2 
         fileout = fullfile(nii2DIR,['rT1_' mean2]); 
         system(sprintf('flirt -in %s -ref %s -out %s -init %s -applyxfm -interp spline',...
-                   means{2,1},fileref,fileout,matout))
+                   means{2,1},fileref,fileout,matout2))
         
         %apply transfrom to pet2 data
         filein = fullfile(nii2DIR,'rFBP_RACd.nii.gz');
         fileout = fullfile(nii2DIR,'rT1_rFBP_RACd.nii.gz');
-        system(sprintf('applyxfm4D %s %s %s %s --singlematrix',filein,fileref,fileout,matout))
+        system(sprintf('applyxfm4D %s %s %s %s --singlematrix',filein,fileref,fileout,matout2))
     end   
 end
 clear niiDIR nii1DIR nii2DIR means petList mean1 mean2

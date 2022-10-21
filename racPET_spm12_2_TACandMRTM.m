@@ -26,24 +26,25 @@
 % Mario Dzemidzic, Indiana University School of Medicine, 2019
 %-------------------------------------------------------------------------%
 %% set system specific paths
-PETcodeDIR = '/N/project/HCPaging/yoderBP_project/PET_processing_Code';
+PETcodeDIR = '/data01/W2D/w2d_proc_mar22/PET_processing_Code';
 addpath(genpath(PETcodeDIR))
 %-------------------------------------------------------------------------%
 %% set path to fsl for shape models
-fslpath='/N/soft/rhel7/fsl/6.0.1b'; %DO NOT PUT A SLASH ON THE END
-fsldatapath= strcat(fslpath,'/data'); % default on non-Gentoo fsl
-%fsldatapath='/usr/share/fsl/data'; % Gentoo fsl data location
+%fslpath='/N/soft/rhel7/fsl/6.0.1b'; %DO NOT PUT A SLASH ON THE END
+%fslpath='/usr/local/fsl';
+%fsldatapath= strcat(fslpath,'/data'); % default on non-Gentoo fsl
+fsldatapath='/usr/share/fsl/data'; % Gentoo fsl data location
 %-------------------------------------------------------------------------%
 %% set path to MNI cerebellar templates
 vermisMNI=fullfile(PETcodeDIR,'mawlawi_roi_code/cerebellum/vermis_bin_dil.nii.gz');
 cerebellumMNI=fullfile(PETcodeDIR,'mawlawi_roi_code/cerebellum/cerebellum_MNI_1mm_bin.nii.gz');
 %-------------------------------------------------------------------------%
 %% set data directory path
-dataDIR='/N/project/HCPaging/yoderBP_project/BP_DTI_jenya_raw';
+dataDIR='/data01/W2D/w2d_proc_mar22/datadir_5';
 %-------------------------------------------------------------------------%
 %% set OUTPUT directory and file name
-outDIR='/N/project/HCPaging/yoderBP_project/MRTM-out-pet1-run2';
-outFILE='BP-run2-all';
+outDIR='/data01/W2D/w2d_proc_mar22/MRTM-out-run1';
+outFILE='BP-run1-all';
 %-------------------------------------------------------------------------%
 %% set ROI IDs and labels
   % name given to parcellation in pipeline (parcs.plabel(#).name)
@@ -87,7 +88,7 @@ cerebmethod = 'mni'; % mni -> use mni to native transformation of a template
 % Run a single or set of subjects:
   %  subjDIRS=dir([dataDIR '/*059']);
 % For the above specified subjects, run PET 1, 2, or all
-    pRUN = 1; % options =1, =2, or =[] to run all PET scans.
+    pRUN = []; % options =1, =2, or =[] to run all PET scans.
 %-------------------------------------------------------------------------%    
 %% Raclopride half-life
 thalf=20.4;
